@@ -71,6 +71,7 @@ class ServerRunnable implements Runnable{
             count++;
             log("접속중인 클라 수 : " + count);
 
+            // 새로운 Receiver 쓰레드에 인자 mStreamConnection 을 넣어서 시작한다.
             new Receiver(mStreamConnection).start();
         }
     }
@@ -94,15 +95,16 @@ class ServerRunnable implements Runnable{
                 // mStreamConnection 의 InputStream 과 OutputStream을 가져옴
                 mInputStream = mStreamConnection.openInputStream();
                 mOutputStream = mStreamConnection.openOutputStream();
-                log("Open Stream...");
             } catch (IOException e) {
                 log("Could't open Stream : " + e.getMessage());
                 try {
+                    // 만약, 스트림을 열지 못하면, 혹시 열려있는 스트림이 있을경우 모두 닫음.
                     mOutputStream.close();
                     mInputStream.close();
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
+                // 현재 쓰레드를 중지시키고, 함수를 종료한다.
                 Thread.currentThread().interrupt();
                 return;
             }
