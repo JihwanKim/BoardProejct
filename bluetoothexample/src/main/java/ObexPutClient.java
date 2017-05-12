@@ -1,7 +1,12 @@
-import java.io.IOException;
-import java.io.OutputStream;
+import com.sun.istack.internal.NotNull;
+
+import java.io.*;
+import java.sql.Time;
+import java.util.Date;
+import java.util.Scanner;
+import javax.bluetooth.RemoteDevice;
 import javax.microedition.io.Connector;
-import javax.obex.*;
+import javax.microedition.io.StreamConnection;
 
 public class ObexPutClient {
 
@@ -14,7 +19,7 @@ public class ObexPutClient {
         if (serverURL == null) {
             String[] searchArgs = null;
             // Connect to OBEXPutServer from examples
-            searchArgs = new String[] { "11111111111111111111111111111123" };
+             searchArgs = new String[] { "0000110100001000800000805F9B34FB" };
             ServicesSearch.main(searchArgs);
             if (ServicesSearch.serviceFound.size() == 0) {
                 System.out.println("OBEX service not found");
@@ -23,33 +28,71 @@ public class ObexPutClient {
             // Select the first service found
             serverURL = (String)ServicesSearch.serviceFound.elementAt(0);
         }
+        //String value = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
+        System.out.println("connect url for spp"+serverURL);
+        // 참고링크
+        // http://stackoverflow.com/questions/15343369/sending-a-string-via-bluetooth-from-a-pc-as-client-to-a-mobile-as-server
+        StreamConnection streamConnection = (StreamConnection) Connector.open(serverURL);
+        InputStream inputStream = streamConnection.openInputStream();
+        OutputStream outputStream = streamConnection.openOutputStream();
+        Thread recvMsg = new Thread(new ReceiveThread(inputStream));
+        Thread sendMsg = new Thread(new SendThread(outputStream));
 
-        System.out.println("Connecting to " + serverURL);
+//        PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(outputStream));
+//        printWriter.write("되냐");
+//        printWriter.flush();
+        sendMsg.start();
+        recvMsg.run();
+        while(true);
+    }
 
-        ClientSession clientSession = (ClientSession) Connector.open(serverURL);
-        HeaderSet hsConnectReply = clientSession.connect(null);
-        if (hsConnectReply.getResponseCode() != ResponseCodes.OBEX_HTTP_OK) {
-            System.out.println("Failed to connect");
-            return;
+}
+
+class SendThread implements Runnable{
+    final OutputStream mOutputStream;
+    public SendThread(@NotNull OutputStream stream) {
+        mOutputStream = stream;
+    }
+    public void run() {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(mOutputStream));
+        while(true){
+            try {
+                System.out.print("보낼 메세지 : ");
+                String sendMsg = reader.readLine();
+                printWriter.write(sendMsg);
+                System.out.println("["+new Date()+"]" + sendMsg);
+                printWriter.flush();
+            } catch (IOException e) {
+                try {
+                    mOutputStream.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
         }
+    }
+}
 
-        HeaderSet hsOperation = clientSession.createHeaderSet();
-        hsOperation.setHeader(HeaderSet.NAME, "Hello.txt");
-        hsOperation.setHeader(HeaderSet.TYPE, "text");
 
-        //Create PUT Operation
-        Operation putOperation = clientSession.put(hsOperation);
-
-        // Send some text to server
-        byte data[] = "Hello world!".getBytes("iso-8859-1");
-        OutputStream os = putOperation.openOutputStream();
-        os.write(data);
-        os.close();
-
-        putOperation.close();
-
-        clientSession.disconnect(null);
-
-        clientSession.close();
+class ReceiveThread implements Runnable{
+    final InputStream mInputStream;
+    public ReceiveThread(@NotNull InputStream stream) {
+        mInputStream = stream;
+    }
+    public void run() {
+        while(true){
+            String sb;
+            BufferedReader bReader2=new BufferedReader(new InputStreamReader(mInputStream));
+            while(true){
+                try{
+                    sb = (bReader2.readLine());
+                    if(sb!=null)
+                        System.out.println(sb);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

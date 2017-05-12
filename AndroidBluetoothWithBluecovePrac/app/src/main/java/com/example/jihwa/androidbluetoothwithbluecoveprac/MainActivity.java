@@ -2,6 +2,7 @@ package com.example.jihwa.androidbluetoothwithbluecoveprac;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -48,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter<String> mConversationArrayAdapter;
     static boolean isConnectionError = false;
     private static final String TAG = "BluetoothClient";
+    private final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+
+    private BluetoothServerSocket bluetoothServerSocket;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +93,33 @@ public class MainActivity extends AppCompatActivity {
             // 2. 페어링 되어 있는 블루투스 장치들의 목록을 보여줌
             // 3. 목록에서 블루투스 장치를 선택하면 선택한 디바이스를
             // 인자로 하여 doConnect 함수가 호출.
-            showPairedDevicesListDialog();
+            try {
+                bluetoothServerSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("SDP NAME",MY_UUID);
+            } catch (IOException e) {
+                Log.e(TAG,"cannot create server socket");
+            }
+
+            // 이렇게 안하면, 대기상태에서 계속유지되어, UI가 초기화되지 않음.
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        try {
+                            Log.d(TAG, "accept wait");
+                            BluetoothSocket socket = bluetoothServerSocket.accept();
+                            Log.d(TAG, "accept create new connectTask . device = " + socket.getRemoteDevice().getName());
+                            Log.d(TAG, "device connect state =  " + socket.isConnected());
+                            ConnectTask task = new ConnectTask(socket);
+                            task.execute();
+                            while(socket.isConnected());
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            };
+            thread.start();
         }
     }
 
@@ -106,26 +136,14 @@ public class MainActivity extends AppCompatActivity {
         private BluetoothSocket mBluetoothSocket = null;
         private BluetoothDevice mBluetoothDevice = null;
 
-        public ConnectTask(BluetoothDevice bluetoothDevice) {
+        public ConnectTask(BluetoothSocket bluetoothSocket) {
 
-            // UUID를 설정한다. 해당 설정을 통해 블루투스 프로토콜을 지정해준다.
-            // SerialPortServiceClass_UUID
-            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
-            // 멤버변수 mBluetoothDevice 에 param bluetoothDevice 를 초기화한다.
-            // param 변수는 dialog에서 선택된 디바이스다.
-            mBluetoothDevice = bluetoothDevice;
+            mBluetoothSocket = bluetoothSocket;
+            mBluetoothDevice = mBluetoothSocket.getRemoteDevice();
+
             // 멤버변수 mConnectedDeviceName 에 mBluetoothDevice 의 이름을 초기화한다.
             mConnectedDeviceName = mBluetoothDevice.getName();
-            //get a bluetoothSocket for a connection with the
-            // given bluetoothDevice
-            try{
-                mBluetoothSocket = mBluetoothDevice.createRfcommSocketToServiceRecord(uuid);
-
-                Log.d(TAG,"create socket for "+mConnectedDeviceName);
-            } catch (IOException e) {
-                Log.d(TAG,"socket create failed " + e.getMessage());
-            }
-            mConnectionStatus.setText("Connecting...");
+            System.out.println("ConnectTask socket status"+mBluetoothSocket.isConnected());
         }
 
         @Override
@@ -133,17 +151,6 @@ public class MainActivity extends AppCompatActivity {
             // Always cancel discovery because it will slow down a connection
             // 연결이 느려지기 때문에, 항상 발견하던것을 취소함.
             mBluetoothAdapter.cancelDiscovery();
-            try{
-                mBluetoothSocket.connect();
-                Log.e(TAG,"mBluetoothSocket connect");
-            } catch (IOException e) {
-                try{
-                    mBluetoothSocket.close();
-                } catch (IOException e1) {
-                    Log.e(TAG,"unable to close()" + "socket during connection failure",e1);
-                    return false;
-                }
-            }
             return true;
         }
 
@@ -163,6 +170,12 @@ public class MainActivity extends AppCompatActivity {
 
     // 연결된 기기를 실행시킨다. background로 넘겨서 실행시킨다.
     private void connected(BluetoothSocket mBluetoothSocket) {
+        if(!mBluetoothSocket.isConnected())
+            try {
+                mBluetoothSocket.connect();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         mConnectedTask = new ConnectedTask(mBluetoothSocket);
         mConnectedTask.execute();
     }
@@ -188,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG,"socket not created",e);
             }
 
-            Log.d(TAG,"connected to " + mConnectedDeviceName);
+            Log.d(TAG,"connected to " + mConnectedDeviceName + " // status : " +mBluetoothSocket.isConnected());
             // 연결되어있는 상태를 표시하는 텍스트에 연결된 디바이스의 이름이 연결됐다고 뜨게함.
             mConnectionStatus.setText("connected to " + mConnectedDeviceName);
         }
@@ -198,6 +211,7 @@ public class MainActivity extends AppCompatActivity {
             byte[] readBuffer = new byte[1024];
             int readBufferPosition = 0;
             while(true){
+
                 if(isCancelled()) return false;
 
                 try{
@@ -264,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
             if(!isSuccess){
                 closeSocket();
                 Log.d(TAG,"Device connection was lost");
-                isConnectionError = true;
+                //isConnectionError = true;
                 showErrorDialog("Device connection was lost");
             }
         }
@@ -307,6 +321,7 @@ public class MainActivity extends AppCompatActivity {
         // Local device와 연결된 device들을 가져온다.
         Set<BluetoothDevice> devices = mBluetoothAdapter.getBondedDevices();
 
+
         // to Array의 반환값과 인자가 T 제네릭 이기 때문에, new BluetoothDevice[0]를 사용한거 같다.
         // TODO : check again. why used new BluetoothDevice[0] in parameter.
         final BluetoothDevice[] pairedDevices = devices.toArray(new BluetoothDevice[0]);
@@ -337,11 +352,11 @@ public class MainActivity extends AppCompatActivity {
                 dialog.dismiss();
 
                 // 선택된 paired Devices 를 인자로 ConnectTask를 선언하여, 실행시킨다.
-                ConnectTask task = new ConnectTask(pairedDevices[which]);
+                //ConnectTask task = new ConnectTask(pairedDevices[which]);
 
                 // this function schedules the task on a queue for a single background
                 // * thread or pool of threads depending on the platform version
-                task.execute();
+                //task.execute();
             }
         });
         // builder를 만들고  display on screen

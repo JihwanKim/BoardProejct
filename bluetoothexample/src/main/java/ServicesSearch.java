@@ -20,7 +20,7 @@ public class ServicesSearch {
 
         serviceFound.clear();
 
-        UUID serviceUUID = new UUID(132131312);
+        UUID serviceUUID = new UUID("0000110100001000800000805F9B34FB",false);
         if ((args != null) && (args.length > 0)) {
             serviceUUID = new UUID(args[0], false);
         }
