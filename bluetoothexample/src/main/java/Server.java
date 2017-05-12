@@ -7,6 +7,7 @@ import javax.microedition.io.StreamConnection;
 import javax.microedition.io.StreamConnectionNotifier;
 import java.io.*;
 import java.util.Date;
+import java.util.Scanner;
 
 /**
  * Created by jihwan on 2017-05-10.
@@ -89,6 +90,16 @@ class ServerRunnable implements Runnable{
         private StreamConnection mStreamConnection = null;
         private PrintWriter printWriter;
 
+        private Thread outputStreamThread = new Thread(){
+            @Override
+            public void run() {
+                Scanner scanner = new Scanner(System.in);
+                while(true){
+                    Sender(scanner.nextLine());
+                }
+            }
+        };
+
         public Receiver(StreamConnection streamConnection) {
             mStreamConnection = streamConnection;
             try{
@@ -140,6 +151,7 @@ class ServerRunnable implements Runnable{
                 // 블루투스로 접속되어있는 기기에 해당 문자를 날림.
                 Sender("에코 서버에 접속하셨습니다.");
                 Sender("보내신 문자를 에코해 드립니다.");
+                outputStreamThread.start();
                 while(true){
                     log("ready");
                     StringBuilder stringBuilder = new StringBuilder();
@@ -159,9 +171,12 @@ class ServerRunnable implements Runnable{
                     }
                     // 만약, disconect 상태면, while문 종료
                     if(isDisconnected) break;
+                    // 메세지를 보냄
                     String recvMessage = stringBuilder.toString();
                     log(mRemoteDeviceString + ": " + recvMessage);
-                    Sender(recvMessage);
+
+                    //Sender(recvMessage);
+
                 }
             } catch (UnsupportedEncodingException e) {
                 log("encoding error : " + e.getMessage());
