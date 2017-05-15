@@ -35,17 +35,6 @@ public class ObexPutClient {
         Thread recvMsg = new Thread(new ReceiveThread(inputStream));
         Thread sendMsg = new Thread(new SendThread(outputStream));
 
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                try {
-                    streamConnection.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("close connect ");
-            }
-        });
-
         sendMsg.start();
         recvMsg.run();
         streamConnection.close();
