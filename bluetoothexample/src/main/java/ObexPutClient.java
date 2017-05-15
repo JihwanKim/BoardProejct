@@ -1,10 +1,7 @@
 import com.sun.istack.internal.NotNull;
 
 import java.io.*;
-import java.sql.Time;
 import java.util.Date;
-import java.util.Scanner;
-import javax.bluetooth.RemoteDevice;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
 
@@ -32,18 +29,26 @@ public class ObexPutClient {
         System.out.println("connect url for spp"+serverURL);
         // 참고링크
         // http://stackoverflow.com/questions/15343369/sending-a-string-via-bluetooth-from-a-pc-as-client-to-a-mobile-as-server
-        StreamConnection streamConnection = (StreamConnection) Connector.open(serverURL);
+        final StreamConnection streamConnection = (StreamConnection) Connector.open(serverURL);
         InputStream inputStream = streamConnection.openInputStream();
         OutputStream outputStream = streamConnection.openOutputStream();
         Thread recvMsg = new Thread(new ReceiveThread(inputStream));
         Thread sendMsg = new Thread(new SendThread(outputStream));
 
-//        PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(outputStream));
-//        printWriter.write("되냐");
-//        printWriter.flush();
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                try {
+                    streamConnection.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("close connect ");
+            }
+        });
+
         sendMsg.start();
         recvMsg.run();
-        while(true);
+        streamConnection.close();
     }
 
 }
@@ -60,9 +65,10 @@ class SendThread implements Runnable{
             try {
                 System.out.print("보낼 메세지 : ");
                 String sendMsg = reader.readLine();
-                printWriter.write(sendMsg);
-                System.out.println("["+new Date()+"]" + sendMsg);
+                printWriter.write(sendMsg + "\n");
                 printWriter.flush();
+
+                System.out.println("["+new Date()+"]" + sendMsg);
             } catch (IOException e) {
                 try {
                     mOutputStream.close();
@@ -88,7 +94,7 @@ class ReceiveThread implements Runnable{
                 try{
                     sb = (bReader2.readLine());
                     if(sb!=null)
-                        System.out.println(sb);
+                        System.out.println("["+ new Date() +"] ReceiveMsg = "+sb);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
