@@ -18,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -82,8 +83,6 @@ public class SocketManager {
                     mConnectedDeviceName = mBluetoothSocket.getRemoteDevice().getName();
                     Log.d(TAG, "accept success. new connectTask . device = " + mConnectedDeviceName);
 
-                    mMsgTask = new MsgTask();
-                    mMsgTask.execute();
 
                     try {
                         mInputStream = mBluetoothSocket.getInputStream();
@@ -91,6 +90,8 @@ public class SocketManager {
                     } catch (IOException e) {
                         Log.d(TAG,"mBluetoothSocket closed " + e.getMessage());
                     }
+                    mMsgTask = new MsgTask();
+                    mMsgTask.execute();
                     msgReceive();
                 } catch (IOException e) {
                     Log.d(TAG,"socket cannot accept!");
@@ -128,14 +129,46 @@ public class SocketManager {
                         //int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.);
 
                         int c;
-                        String path = Environment.getExternalStorageDirectory().getAbsolutePath();
-                        file = new File(path,"test.txt");
-
-                        FileOutputStream out = new FileOutputStream(file);//mContext.openFileOutput("test.txt",Context.MODE_PRIVATE);
-                        out.write(packetBytes);
-                        out.flush();
+                        String path = Environment.getExternalStorageDirectory().getAbsolutePath()+"/TestPath";
+                        file = new File(path);
+                        file.mkdirs();
+                        file = new File(path+"/" + new Date()+".txt");
+                        //file.createNewFile();
+                        //FileOutputStream(file) 사용하면, permission denied 에러가뜸
+                        // > permission 허가를 안해줘서그럼
+                        FileOutputStream out = new FileOutputStream(file);
+                                //mContext.openFileOutput("test.txt",Context.MODE_APPEND);
+                        // 테스트 1회차 -
+                        //17233 회 읽더니 뻗음 - 1.51GB
+                        int readNum = 0;
+                        int readData = 0;
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        while(bytesAvailable>0) {
+                            //  > packetBytes로 값을 안읽어줘서 뻘짓함.
+                            // 데이터가 너무 빨리전송되면, 에러터지는듯
+                            out.write(packetBytes);
+                            readData = mInputStream.read(packetBytes);
+                            Log.d(TAG,"File Read : "+readNum++ + "\t available - " + bytesAvailable);
+                            out.flush();
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            bytesAvailable = mInputStream.available();
+                        }
+                        Log.d(TAG,"read Data " + readData);
                         out.close();
-                        Log.d(TAG,"file write[" + file.getPath() + "] Name[" + file.getName() + "] fileSize = " + file.length());
+
+                        //out.write(packetBytes);
+                        //out.flush();
+                        //out.close();
+                        Log.d(TAG,"file write[" + file.getPath() + "] Name[" + file.getName() + "] fileSize = " + file.length()
+                        + " byteSize = " + packetBytes.length);
                         isReceiveFile = false;
                     }else{
 
@@ -255,36 +288,12 @@ public class SocketManager {
         return isReceiveFile;
     }
 
-    private void receiveFile(byte [] bytes){
-        String path = Environment.getExternalStorageDirectory().getAbsolutePath();
-        file = new File(path + "/"+new Date()+".txt");
-        Log.d(TAG,"path = " + file.getPath());
-        try {
-            mFileOutputStream = new FileOutputStream(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        try {
-            Log.d(TAG,"bytes = " + bytes.length);
-            byte [] byte2 = "123213123".getBytes();
-            mFileOutputStream.write(byte2);
-
-            mFileOutputStream.flush();
-            mFileOutputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        file = null;
-        mFileOutputStream = null;
-
-        isReceiveFile = false;
-    }
     public void onCancel(){
+        if(!mMsgTask.isCancelled())
+            mMsgTask.cancel(true);
         try {
             mBluetoothSocket.close();
         } catch (IOException e) {
         }
-        if(!mMsgTask.isCancelled())
-            mMsgTask.cancel(true);
     }
 }

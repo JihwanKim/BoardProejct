@@ -1,9 +1,11 @@
 package com.example.jihwa.androidbluetoothwithbluecoveprac;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -27,6 +29,7 @@ import android.widget.TextView;
 public class MainActivity extends AppCompatActivity {
 
     private final int REQUEST_BLUETOOTH_ENABLE = 100;
+    private final int REQUEST_FILE_ENABLE = 100;
     // 현재 연결 상태를 보여주는 TextView
     private TextView mConnectionStatus;
     // 쓰는 글을 입력받을 EditText
@@ -71,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void callSocketManager(){
+        //파일 쓰기 권한요청
+        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_FILE_ENABLE);
         // bluetooth adapter 초기화
         // 만약, off면, on으로 바꾸고, SocketManager실행
         Log.d(TAG,"Initializing Bluetooth adapter..");
@@ -110,10 +115,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == REQUEST_BLUETOOTH_ENABLE){
             if(resultCode == RESULT_OK){
-                socketManager = new SocketManager(mConnectionStatus,mConversationArrayAdapter,context);
+                callSocketManager();
             }
             if(resultCode == RESULT_CANCELED){
                 showQuitDialog("You need to enable bluetooth");
+            }
+        }
+    }
+
+    // 권한허용 요청 결과에대한 실행
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if(requestCode == REQUEST_FILE_ENABLE){
+            if(requestCode == RESULT_OK){
+                //nothing
+            }
+            if(requestCode == RESULT_CANCELED){
+                onDestroy();
             }
         }
     }
