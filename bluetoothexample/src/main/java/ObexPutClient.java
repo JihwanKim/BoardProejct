@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Date;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
@@ -28,7 +29,8 @@ public class ObexPutClient {
             // Select the first service found
             serverURL = (String)ServicesSearch.serviceFound.elementAt(0);
         }
-        serverURL = "btspp://F8E61A466934:4;authenticate=false;encrypt=false;master=false";
+        serverURL = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
+        //sppbtspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false
         //String value = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
         System.out.println("connect url for spp"+serverURL);
         // 참고링크
@@ -62,12 +64,12 @@ class SendThread implements Runnable{
                     printWriter.write(sendMsg + "\n");
                     printWriter.flush();
                     File file = new File("temp.txt");
-                    FileWriter fileWriter = new FileWriter(file);
-                    fileWriter.write("this is temp file");
-                    fileWriter.flush();
-                    mOutputStream.write(Files.readAllBytes(file.toPath()));
-                    mOutputStream.write('\n');
+                    byte[] bytes = Files.readAllBytes(file.toPath());
+                    mOutputStream.write(bytes);
                     mOutputStream.flush();
+
+                    //mOutputStream.write('\n');
+                    System.out.println("sendFile TOTAL - " + file.length());
                 }else{
                     printWriter.write(sendMsg + "\n");
                     printWriter.flush();
@@ -80,6 +82,7 @@ class SendThread implements Runnable{
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
+                return;
             }
         }
     }
