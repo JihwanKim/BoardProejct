@@ -29,7 +29,7 @@ public class ObexPutClient {
             // Select the first service found
             serverURL = (String)ServicesSearch.serviceFound.elementAt(0);
         }
-        serverURL = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
+        //serverURL = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
         //sppbtspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false
         //String value = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
         System.out.println("connect url for spp"+serverURL);
@@ -39,19 +39,21 @@ public class ObexPutClient {
         InputStream inputStream = streamConnection.openInputStream();
         OutputStream outputStream = streamConnection.openOutputStream();
         Thread recvMsg = new Thread(new ReceiveThread(inputStream));
-        Thread sendMsg = new Thread(new SendThread(outputStream));
+        Thread sendMsg = new Thread(new SendThread(streamConnection,outputStream));
 
         sendMsg.start();
-        recvMsg.run();
-        streamConnection.close();
+        recvMsg.start();
     }
 
 }
 
 class SendThread implements Runnable{
     final OutputStream mOutputStream;
-    public SendThread(@NotNull OutputStream stream) {
-        mOutputStream = stream;
+    final StreamConnection streamConnection;
+    public SendThread(@NotNull StreamConnection stream,OutputStream outputStream) {
+        streamConnection = stream;
+        mOutputStream = outputStream;
+
     }
     public void run() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -60,18 +62,38 @@ class SendThread implements Runnable{
             try {
                 System.out.print("보낼 메세지 : ");
                 String sendMsg = reader.readLine();
+                if(sendMsg.equals("\"end\"")){
+                    streamConnection.openInputStream().close();
+                    mOutputStream.close();
+                    streamConnection.close();
+                    return;
+                }
                 if(sendMsg.equals("sendFile")) {
-                    printWriter.write(sendMsg + "\n");
-                    printWriter.flush();
                     File file = new File("temp.txt");
-                    byte[] bytes = Files.readAllBytes(file.toPath());
-                    mOutputStream.write(bytes);
-                    mOutputStream.flush();
+                    // TODO : protocol 을 사용해서 전송하는 부분 해보기
+//                    byte[] bytes = new byte["[FINE]".getBytes().length + file.getName().getBytes().length];
+//                    System.arraycopy(bytes,0,"[FINE]".getBytes(),0,6);
+//                    System.arraycopy(bytes,6, file.getName().getBytes(),0,file.getName().getBytes().length);
+//                    mOutputStream.write(bytes);
+//                    mOutputStream.flush();
+//
+//                    bytes = new byte["[FILE]".getBytes().length + Files.readAllBytes(file.toPath()).length];
+//                    System.arraycopy(bytes,0,"[FILE]".getBytes(),0,6);
+//                    System.arraycopy(bytes,6,Files.readAllBytes(file.toPath()),0,Files.readAllBytes(file.toPath()).length);
+//                    mOutputStream.write(bytes);
+//                    mOutputStream.flush();
+//                    mOutputStream.write("[FILE];".getBytes());
+//                    mOutputStream.flush();
 
-                    //mOutputStream.write('\n');
+                    printWriter.write("sendFile\n");
+                    printWriter.flush();
+                    mOutputStream.write(Files.readAllBytes(file.toPath()));
+                    mOutputStream.write('\n');
+                    mOutputStream.flush();
+                    mOutputStream.close();
                     System.out.println("sendFile TOTAL - " + file.length());
                 }else{
-                    printWriter.write(sendMsg + "\n");
+                    printWriter.write("[MESG]"+sendMsg + "\n");
                     printWriter.flush();
                 }
 
@@ -104,7 +126,10 @@ class ReceiveThread implements Runnable{
                     if(sb!=null)
                         System.out.println("["+ new Date() +"] ReceiveMsg = "+sb);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    try {
+                        mInputStream.close();
+                    } catch (IOException e1) {
+                    }
                 }
             }
         }
