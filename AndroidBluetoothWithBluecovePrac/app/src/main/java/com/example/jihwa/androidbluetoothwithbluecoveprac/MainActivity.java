@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(intent,REQUEST_BLUETOOTH_ENABLE);
         }else {
-            socketManager = new SocketManager(mConnectionStatus, mConversationArrayAdapter,context);
+            socketManager = new SocketManager(mConnectionStatus, mConversationArrayAdapter);
         }
     }
 
