@@ -10,7 +10,7 @@ import java.io.UnsupportedEncodingException;
  *   의미            약어               byte 값
  * SendMeSsaGe      [SMSG]          918377837193
  * SendFileNaMe     [SFNM]          918370787793
- * SendFileVaLue    [SFVL]          918370867693
+ * SendFileBody     [SFBD]          918370867693
  * SendFileEnD      [SFED]          918370696893
  * 그 이후에는 data 값들이 날라옴.
  */
@@ -19,7 +19,7 @@ public class JHProtocol {
     }
 
     public enum Name{
-        SMSG,SFMN,SFVL,SFED,NULL;
+        SMSG,SFMN, SFBD,SFED,NULL;
 
         public static Name getEnum(byte[] src){
             String str = null;
@@ -34,8 +34,8 @@ public class JHProtocol {
             if(str == "[SFMN]"){
                 return SFMN;
             }
-            if(str == "[SFVL]"){
-                return SFVL;
+            if(str == "[SFBD]"){
+                return SFBD;
             }
             if(str == "[SFED]"){
                 return SFED;
@@ -51,8 +51,8 @@ public class JHProtocol {
             if(str == "[SFMN]"){
                 return SFMN;
             }
-            if(str == "[SFVL]"){
-                return SFVL;
+            if(str == "[SFBD]"){
+                return SFBD;
             }
             if(str == "[SFED]"){
                 return SFED;
