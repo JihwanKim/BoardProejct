@@ -50,13 +50,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 각각 UI에서 맞는 변수를 가져와서 초기화시킨다.
         Button sendButton = (Button) findViewById(R.id.send_button);
         sendButton.setOnClickListener(new View.OnClickListener(){
 
             @Override
             public void onClick(View v) {
+                // 만약, 텍스트길이가 0보다 크거나, 연결이 되어있을경우 메세지를 보낸다.
                 String sendMessage = mInputEditText.getText().toString();
-                if(sendMessage.length()>0 && socketManager!=null && !socketManager.isReceiveFile()) {
+                if(sendMessage.length()>0 && socketManager!=null ) {
                     Log.d(TAG,"SEND MSG :" +sendMessage);
                     socketManager.sendMessage(sendMessage);
                     mInputEditText.setText(" ");
@@ -76,14 +78,16 @@ public class MainActivity extends AppCompatActivity {
     private void callSocketManager(){
         //파일 쓰기 권한요청
         requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_FILE_ENABLE);
+
         // bluetooth adapter 초기화
-        // 만약, off면, on으로 바꾸고, SocketManager실행
         Log.d(TAG,"Initializing Bluetooth adapter..");
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if(!mBluetoothAdapter.isEnabled()){
+            // 블루투스 기능을 켠다.
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(intent,REQUEST_BLUETOOTH_ENABLE);
         }else {
+            // 켜져있으면, 블루투스 서버를 초기화하고 실행시킨다.
             socketManager = new SocketManager(mConnectionStatus, mConversationArrayAdapter);
         }
     }
@@ -109,7 +113,6 @@ public class MainActivity extends AppCompatActivity {
         builder.create().show();
     }
 
-    // 블루투스 실행시키는 결과값을 확인하여, showPairedDevicesListDialog를 호출하거나,
     // 블루투스가 존재하지 않는 경우, 종료 다이얼로그를 보여준다.
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
