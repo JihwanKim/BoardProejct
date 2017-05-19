@@ -14,14 +14,10 @@ public class JHProtocolUnitTest {
         byte[] bytes1 = {1,2,3};
         byte[] bytes2 = {4,5,6};
 
-        byte[] byteActual = JHProtocol.arrayCombine(bytes1,bytes2);
-        byte[] byteExpected = new byte[]{1,2,3,4,5,6};
-        StringBuilder actual = new StringBuilder();
-        StringBuilder expected = new StringBuilder();
-        for(int i = 0; i < byteActual.length ; i++){
-            actual.append(byteActual[i]);
-            expected.append(byteExpected[i]);
-        }
+        byte[] bytesActual = JHProtocol.arrayCombine(bytes1,bytes2);
+        byte[] bytesExpected = new byte[]{1,2,3,4,5,6};
+        StringBuilder actual = new StringBuilder(new String(bytesActual,"UTF-8"));
+        StringBuilder expected = new StringBuilder(new String(bytesExpected,"UTF-8"));
         assertEquals(expected.toString(), actual.toString());
     }
     @Test
@@ -29,13 +25,8 @@ public class JHProtocolUnitTest {
         byte[] baseValue = "[SMSG]this is name".getBytes();
         byte[] bytesActual = JHProtocol.separateGetProtocolReturnByteArray(baseValue);
         byte[] bytesExpected = "[SMSG]".getBytes();
-        StringBuilder actual = new StringBuilder();
-        StringBuilder expected = new StringBuilder();
-        for(int i = 0; i < bytesActual.length ; i++){
-            actual.append(bytesActual[i]);
-            if(i < bytesExpected.length)
-                expected.append(bytesExpected[i]);
-        }
+        StringBuilder actual = new StringBuilder(new String(bytesActual,"UTF-8"));
+        StringBuilder expected = new StringBuilder(new String(bytesExpected,"UTF-8"));
         assertEquals(expected.toString(), actual.toString());
     }
 

@@ -7,10 +7,11 @@ import java.io.UnsupportedEncodingException;
 /**
  * Created by jihwa on 2017-05-19.
  * idx 0~6번째까지는 protocol 정보가 수신됨
- * SendMeSsaGe      [SMSG] - 918377837193
- * SendFileNaMe     [SFNM] - 918370787793
- * SendFileVaLue    [SFVL] - 918370867693
- * SendFileEnD      [SFED] - 918370696893
+ *   의미            약어               byte 값
+ * SendMeSsaGe      [SMSG]          918377837193
+ * SendFileNaMe     [SFNM]          918370787793
+ * SendFileVaLue    [SFVL]          918370867693
+ * SendFileEnD      [SFED]          918370696893
  * 그 이후에는 data 값들이 날라옴.
  */
 public class JHProtocol {
