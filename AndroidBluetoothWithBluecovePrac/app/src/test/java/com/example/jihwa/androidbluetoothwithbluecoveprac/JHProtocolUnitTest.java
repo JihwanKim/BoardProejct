@@ -9,35 +9,17 @@ import static org.junit.Assert.assertEquals;
  */
 
 public class JHProtocolUnitTest {
+//    @Test
+//    //0xFA /0x00 0x01 /0x02 /0x01 0xFF/0x00
+//    public void makeHeader_correct() throws Exception {
+//        byte[] excepted = new byte[]{(byte) 0xFA,0x00,0x01,0x02,0x01, (byte) 0xFF,0x00};
+//        byte[] data = new byte[]{0x01, (byte) 0xFF};
+//        byte[] actual = JHProtocol.makeHeader(JHProtocol.Flag.MODULE_CONTROL,1, JHProtocol.Id.POWER_ON,data, JHProtocol.EndFlag.WRITE);
+//        assertEquals(new String(excepted).toString(), new String(actual).toString());
+//    }
     @Test
-    public void arrayCombine_correct() throws Exception {
-        byte[] bytes1 = {1,2,3};
-        byte[] bytes2 = {4,5,6};
-
-        byte[] bytesActual = JHProtocol.arrayCombine(bytes1,bytes2);
-        byte[] bytesExpected = new byte[]{1,2,3,4,5,6};
-        StringBuilder actual = new StringBuilder(new String(bytesActual,"UTF-8"));
-        StringBuilder expected = new StringBuilder(new String(bytesExpected,"UTF-8"));
-        assertEquals(expected.toString(), actual.toString());
-    }
-    @Test
-    public void separateGetProtocol_correct() throws Exception{
-        byte[] baseValue = "[SMSG]this is name".getBytes();
-        byte[] bytesActual = JHProtocol.separateGetProtocolReturnByteArray(baseValue);
-        byte[] bytesExpected = "[SMSG]".getBytes();
-        StringBuilder actual = new StringBuilder(new String(bytesActual,"UTF-8"));
-        StringBuilder expected = new StringBuilder(new String(bytesExpected,"UTF-8"));
-        assertEquals(expected.toString(), actual.toString());
-    }
-
-    @Test
-    public void separateGetBody_correct() throws Exception{
-        byte[] baseValue = "[SMSG]this is name".getBytes();
-        byte[] bytesActual = JHProtocol.separateGetBodyReturnByteArray(baseValue);
-        byte[] bytesExpected = "this is name".getBytes();
-        StringBuilder actual = new StringBuilder(new String(bytesActual,"UTF-8"));
-        StringBuilder expected = new StringBuilder(new String(bytesExpected,"UTF-8"));
-
-        assertEquals(expected.toString(), actual.toString());
+    public void getLength_correct() throws Exception{
+        int bytes = JHProtocol.getLength(new byte[]{0x01,0x01});
+        assertEquals(0x0101,bytes);
     }
 }
