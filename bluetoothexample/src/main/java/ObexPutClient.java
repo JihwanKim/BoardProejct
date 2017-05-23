@@ -2,7 +2,6 @@ import com.sun.istack.internal.NotNull;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Scanner;
 import javax.microedition.io.Connector;
@@ -71,45 +70,34 @@ class SendThread implements Runnable{
                     Scanner scan = new Scanner(System.in);
                     File file = new File(scan.nextLine());
                     // TODO : protocol 을 사용해서 전송하는 부분 해보기
-//                    byte[] bytes = new byte["[FINE]".getBytes().length + file.getName().getBytes().length];
-//                    System.arraycopy(bytes,0,"[FINE]".getBytes(),0,6);
-//                    System.arraycopy(bytes,6, file.getName().getBytes(),0,file.getName().getBytes().length);
-//                    mOutputStream.write(bytes);
-//                    mOutputStream.flush();
-//
-//                    bytes = new byte["[FILE]".getBytes().length + Files.readAllBytes(file.toPath()).length];
-//                    System.arraycopy(bytes,0,"[FILE]".getBytes(),0,6);
-//                    System.arraycopy(bytes,6,Files.readAllBytes(file.toPath()),0,Files.readAllBytes(file.toPath()).length);
-//                    mOutputStream.write(bytes);
-//                    mOutputStream.flush();
-//                    mOutputStream.write("[FILE];".getBytes());
-//                    mOutputStream.flush();
-
-                    mOutputStream.write(JHProtocol.combineProtocolAndBody(JHProtocol.Name.SFNM,file.getName().getBytes()));
-                    mOutputStream.flush();
                     byte[] fileByte = Files.readAllBytes(file.toPath());
-                    final int degree = 1010-6;
-                    final int loopNum = fileByte.length/degree;
                     int sendByteLength = 0;
-                    for(int i = 0 ; i < loopNum+1 ; i++){
-
-                        byte[] sendByte;
-                        if(loopNum == i){
-                            sendByte = Arrays.copyOfRange(fileByte, (i) * degree, fileByte.length);
-                            if(fileByte.length%degree != 0) {
-                                sendByteLength+=sendByte.length;
-                                mOutputStream.write(JHProtocol.combineProtocolAndBody(JHProtocol.Name.SFBD, sendByte));
-                                mOutputStream.flush();
-                                System.out.println("sendByte!!!!");
-                            }
-                        }else {
-                            sendByte = Arrays.copyOfRange(fileByte, (i) * degree, (i + 1) * degree);
-                            sendByteLength+=sendByte.length;
-                            mOutputStream.write(JHProtocol.combineProtocolAndBody(JHProtocol.Name.SFBD, sendByte));
-                            mOutputStream.flush();
-                        }
-                        System.out.println("loop num = "+i +" byteLength = " + sendByteLength);
+                    byte[] packet =JHProtocol.makePacket(JHProtocol.makeHeader(JHProtocol.StartFlag.DATA,JHProtocol.Id.DATA_NAME),file.getName().getBytes());
+                    for(int i = 0 ; i < 5 ; i ++){
+                        System.out.print(i + " = " +packet[i] +"\t");
                     }
+                    System.out.println();
+                    mOutputStream.write(packet);
+                    mOutputStream.flush();
+
+                    packet =JHProtocol.makePacket(JHProtocol.makeHeader(JHProtocol.StartFlag.DATA,JHProtocol.Id.DATA_BODY),fileByte);
+                    for(int i = 0 ; i < 5 ; i ++){
+                        System.out.print(i + " = " +packet[i] +"\t");
+                    }
+                    System.out.println();
+                    mOutputStream.write(packet);
+                    mOutputStream.flush();
+
+                    packet =JHProtocol.makePacket(JHProtocol.makeHeader(JHProtocol.StartFlag.DATA,JHProtocol.Id.DATA_END),null);
+                    for(int i = 0 ; i < 5 ; i ++){
+                        System.out.print(i + " = " +packet[i] +"\t");
+                    }
+                    System.out.println();
+                    mOutputStream.write(packet);
+                    mOutputStream.flush();
+
+                    System.out.println("loop num = " +" byteLength = " + sendByteLength);
+
 
                     mOutputStream.flush();
                     try {
@@ -117,16 +105,15 @@ class SendThread implements Runnable{
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    mOutputStream.write(JHProtocol.Name.getByte(JHProtocol.Name.SFED));
                     mOutputStream.flush();
 
                     System.out.println("sendFile TOTAL - " + file.length());
                 }else{
-                    mOutputStream.write(JHProtocol.combineProtocolAndBody(JHProtocol.Name.SMSG,(sendMsg+"\n").getBytes()));
+                    //mOutputStream.write(JHProtocol.combineProtocolAndBody(JHProtocol.Name.SMSG,(sendMsg+"\n").getBytes()));
                     mOutputStream.flush();
                 }
 
-                System.out.println("["+new Date()+"]" + new String(JHProtocol.combineProtocolAndBody(JHProtocol.Name.SMSG,(sendMsg+"\n").getBytes())));
+                System.out.println("["+new Date()+"]" + new String(sendMsg));
             } catch (IOException e) {
                 try {
                     mOutputStream.close();
