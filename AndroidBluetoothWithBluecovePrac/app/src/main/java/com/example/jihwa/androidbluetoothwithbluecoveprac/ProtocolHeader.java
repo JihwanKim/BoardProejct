@@ -2,6 +2,10 @@ package com.example.jihwa.androidbluetoothwithbluecoveprac;
 
 import android.util.Log;
 
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.EndFlag;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.Id;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.StartFlag;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -10,7 +14,7 @@ import java.util.Arrays;
  * Created by jihwa on 2017-05-23.
  */
 
-public class CommunicationProtocol {
+public class ProtocolHeader {
 
     private static final int START_FLAG = 1;
     private static final int END_FLAG = 1;
@@ -19,13 +23,13 @@ public class CommunicationProtocol {
     public static final int HEADER_LENGTH = START_FLAG + END_FLAG + ID + LENGTH ;
 
     byte[] mPacket = null;
-    private JHProtocol.StartFlag startFlag = null;
-    private JHProtocol.EndFlag endFlag = null;
-    private JHProtocol.Id id = null;
+    private StartFlag startFlag = null;
+    private EndFlag endFlag = null;
+    private Id id = null;
 
     private int dataLength = 0;
 
-    public CommunicationProtocol(@NotNull byte[] packet) {
+    public ProtocolHeader(@NotNull byte[] packet) {
         mPacket = packet;
         analysisHeader();
 
@@ -33,16 +37,16 @@ public class CommunicationProtocol {
 
     // 헤더 및 데이터 분석
     // 0xFF : 잘못된 명령으로 전송되었을 경우.
-    public JHProtocol.StartFlag getStartFlag()  {
+    public StartFlag getStartFlag()  {
         return startFlag;
     }
 
 
-    public JHProtocol.EndFlag getEndFlag()  {
+    public EndFlag getEndFlag()  {
         return endFlag;
     }
 
-    public JHProtocol.Id getId()  {
+    public Id getId()  {
         return id;
     }
 
@@ -57,9 +61,9 @@ public class CommunicationProtocol {
 
     public boolean analysisHeader(){
         if(startFlag == null){
-            startFlag = JHProtocol.StartFlag.getStartFlag(mPacket[0]);
-            endFlag = JHProtocol.EndFlag.getEndFlag(mPacket[1]);
-            id = JHProtocol.Id.getId(mPacket[2]);
+            startFlag = StartFlag.getStartFlag(mPacket[0]);
+            endFlag = EndFlag.getEndFlag(mPacket[1]);
+            id = Id.getId(mPacket[2]);
 
             //(((int)mPacket[1]&0xFF)<<8 )+ (int)mPacket[0]&0xFF; ????<< 왜 얘는 안되지 ?
             int a = (mPacket[3]&0xFF)<<8;

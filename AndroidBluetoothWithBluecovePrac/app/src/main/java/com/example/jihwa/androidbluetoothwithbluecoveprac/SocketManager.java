@@ -9,6 +9,10 @@ import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.DataProcess;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.Id;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.StartFlag;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -126,7 +130,7 @@ public class SocketManager {
         int readBufferPosition = 0;
         File file = null;
         FileOutputStream out = null;
-        CommunicationProtocol communicationProtocol = null;
+        ProtocolHeader protocolHeader = null;
         while(true){
             try{
                 if(!mBluetoothSocket.isConnected()) {
@@ -140,150 +144,50 @@ public class SocketManager {
                 // 바이트 수의 추정치. 입력 Stream의 마지막에 이르렀을 때의 바이트 수.
                 int bytesAvailable = mInputStream.available();
                 // 만약, 대기중인게 있을 경우,
-                if(bytesAvailable > JHProtocol.HEADER_LENGTH) {
+                if(bytesAvailable >= protocolHeader.HEADER_LENGTH) {
                     // packet으로 온 bytes를 저장할 변수를 선언함
-                    byte[] dataPackets = new byte[JHProtocol.HEADER_LENGTH];
+                    byte[] dataPackets = new byte[protocolHeader.HEADER_LENGTH];
                     //read from the inputStream
                     // mInputStream에서 읽어온 bytes를 packetBytes에 저장함.
                     mInputStream.read(dataPackets);
                     Log.d(TAG,"read packet");
 
-                    communicationProtocol = new CommunicationProtocol(dataPackets);
-                    Log.d(TAG,"id = " + communicationProtocol.getId().toString() + " available =  " + bytesAvailable);
+                    protocolHeader = new ProtocolHeader(dataPackets);
+                    Log.d(TAG,"id = " + protocolHeader.getId().toString() + " available =  " + bytesAvailable);
                     for(int i = 0 ; i < dataPackets.length ; i ++)
                         Log.d(TAG," value = " + dataPackets[i]);
-                    if (communicationProtocol.analysisHeader()) {
+                    //
+                    // 만약, 데이터 길이가 0보다 크면 조건걸어서 처리.
+                    // data bytes가 존재하는것과 존재하지 않는것 미리 구분해놓기.
+                    // enum Id 에 해당 부분을
+                    // newFile. writeFile, endFile
+                    //
+                    //
+                    if (protocolHeader.analysisHeader()) {
                         Log.d(TAG,"analysis header");
                         // 분석됐으면 동작하기.
 
 
-                        // 이 아래부분은 반대쪽에서 send data가 있는부분.
-                        if(communicationProtocol.getStartFlag() == JHProtocol.StartFlag.MODULE_STATUS ||
-                                communicationProtocol.getStartFlag() == JHProtocol.StartFlag.DATA) {
-                            Log.d(TAG,"this order = " + communicationProtocol.getStartFlag().toString());
-                            while(communicationProtocol.getDataLength() > mInputStream.available()){
+                        Log.d(TAG,"this order = " + protocolHeader.getStartFlag().toString());
+                        //  만약,  header에 저장되어있는 데이터의 길이가 0보다 클경우, data가 포함되어있으므로 아래를 실행함.
+                        if(protocolHeader.getDataLength() > 0) {
+                            while (protocolHeader.getDataLength() > mInputStream.available()) {
 
                             }
-                            Log.d(TAG,"available length = " + mInputStream.available());
+                            Log.d(TAG, "available length = " + mInputStream.available());
 
-                            if (communicationProtocol.getDataLength() <= mInputStream.available()) {
-                                byte[] packetData = new byte[communicationProtocol.getDataLength()];
+                            if (protocolHeader.getDataLength() <= mInputStream.available()) {
+                                byte[] packetData = new byte[protocolHeader.getDataLength()];
                                 mInputStream.read(packetData);
-                                Log.d(TAG,"read packet byte length = " + packetData.length  + "    sec protocol length"
-                                        + communicationProtocol.getDataLength() + " to String = " + new String(packetData));
-                                if (communicationProtocol.getStartFlag() == JHProtocol.StartFlag.MODULE_STATUS) {
-
-                                }else if (communicationProtocol.getStartFlag() == JHProtocol.StartFlag.DATA) {
-                                    if (communicationProtocol.getId() == JHProtocol.Id.DATA_NAME) {
-                                        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TestPath";
-                                        file = new File(path);
-                                        file.mkdirs();
-                                        file = new File(path + "/" + new String(packetData,"UTF-8") + new Date() + ".txt");
-                                        out = new FileOutputStream(file);
-                                        Log.d(TAG, "file write[" + file.getPath() + "] StartFlag[" + file.getName() + "] fileSize = " + file.length());
-                                        for(int i = 0 ; i < packetData.length ; i++){
-                                            Log.d(TAG, "value["+i+"] = " + packetData[i]);
-                                        }
-                                    } else if (communicationProtocol.getId() == JHProtocol.Id.DATA_BODY) {
-                                        // 이부분부터 파일수신부
-                                        // path directory 가 존재하지 않으면, directory 를 생성한 후에 파일을저장함
-                                        //file.createNewFile();
-                                        //FileOutputStream(file) 사용하면, permission denied
-                                        //  > packetBytes로 값을 안읽어줘서 뻘짓함.
-                                        Log.d(TAG, "file write = " + packetData.length);
-                                        out.write(packetData);
-                                        out.flush();
-                                    }
-                                }
-                            }
-                            // 파일전송 종료는 data가 들어있지 않으므로 위 괄호에서 제외시킴
-                            if (communicationProtocol.getId() == JHProtocol.Id.DATA_END) {
-                                mMsgQueue.add("Success File Receive!");
-                                Log.d(TAG, "file write complete[" + file.getPath() + "] StartFlag[" + file.getName() + "] fileSize = " + file.length());
-                                out.close();
-                                out = null;
-                                file = null;
+                                Log.d(TAG, "packet Data length = " + packetData.length);
+                                new DataProcess(protocolHeader.getId(), packetData).getProcess().process(packetData);
                             }
                         }
-                    }
-
-                    JHProtocol.StartFlag startFlag = JHProtocol.getStartFlag(dataPackets);
-                    JHProtocol.EndFlag endFlag = JHProtocol.getEndFlag(dataPackets);
-                    JHProtocol.Id id = JHProtocol.getId(dataPackets);
-                    int dataLength = JHProtocol.getLength(dataPackets);
-                    if(startFlag == JHProtocol.StartFlag.MODULE_CONTROL){
+                        else {
+                            new DataProcess(protocolHeader.getId()).getProcess().process(null);
+                        }
 
                     }
-                    if(startFlag == JHProtocol.StartFlag.MODULE_STATUS){
-
-                    }
-                    if(startFlag == JHProtocol.StartFlag.DATA){
-
-                    }
-                    if(startFlag == JHProtocol.StartFlag.DOSE){
-
-                    }
-                    if(startFlag == JHProtocol.StartFlag.ERROR){
-
-                    }
-
-//                    if(protocol.equals(JHProtocol.StartFlag.getString(JHProtocol.StartFlag.SFNM))){
-//                        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TestPath";
-//                        file = new File(path);
-//                        file.mkdirs();
-//                        file = new File(path + "/" + new String(packetBytes) +new Date() + ".txt");
-//                        out = new FileOutputStream(file);
-//                        Log.d(TAG, "file write[" + file.getPath() + "] StartFlag[" + file.getName() + "] fileSize = " + file.dataLength());
-//                    }
-//                    if(protocol.equals(JHProtocol.StartFlag.getString(JHProtocol.StartFlag.SFBD))){
-//                        // 이부분부터 파일수신부
-//                        // path directory 가 존재하지 않으면, directory 를 생성한 후에 파일을저장함
-//                        //file.createNewFile();
-//                        //FileOutputStream(file) 사용하면, permission denied
-//                        //  > packetBytes로 값을 안읽어줘서 뻘짓함.
-//                        Log.d(TAG,"file write = " + packetBytes.dataLength);
-//                        out.write(packetBytes);
-//                        out.flush();
-//                    }
-//                    if(protocol.equals(JHProtocol.StartFlag.getString(JHProtocol.StartFlag.SFED))){
-//                        mMsgQueue.add("Success File Receive!");
-//                        Log.d(TAG, "file write complete[" + file.getPath() + "] StartFlag[" + file.getName() + "] fileSize = " + file.dataLength());
-//                        out.close();
-//                        out = null;
-//                        file = null;
-//                    }
-//                    if(protocol.equals(JHProtocol.StartFlag.getString(JHProtocol.StartFlag.SMSG))){
-//                        for (int i = 0; i < packetBytes.dataLength; i++) {
-//                            // b를 packetBytes 의 i번째 byte로 초기화시킴.
-//                            byte b = packetBytes[i];
-//                            // 만약, 엔터 이스케이프 시퀸스가 발견될 경우,
-//                            // 읽어들인 readBufferPosition의 크기를 지닌 encodedBytes를 선언하는데,
-//                            // 해당 변수는 결과적으로 readBuffer에 저장되어있는 모든 배열을 카피해감.
-//                            // TODO : check . why arraycopy readBuffer to encodedBytes
-//                            if (b == '\n') {
-//                                byte[] encodedBytes = new byte[readBufferPosition];
-//                                System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.dataLength);
-//                                // encodedBytes에 저장되어있는 값을 UTF-8 인코딩으로 recvMessage에 저장함.
-//                                String recvMessage = new String(encodedBytes, "UTF-8");
-//
-//                                // readBufferPosition에 0을 대입함.
-//                                readBufferPosition = 0;
-//
-//                                // 만약, 파일을 보내는 명령어가 전송되면, isReceiveFile을 true로
-//                                // 만들어서 파일을 전송받는다. 추후 프로토콜방식으로 수정시,
-//                                // 해당부분은 제거될 예정.
-//                                // message 가 들어오면 messageQueue에 추가시킨다.
-//                                mMsgQueue.add(recvMessage);
-//                            } else {
-//                                // readBuffer에 readBufferPostion의 위치에 b를 저장함.
-//                                readBuffer[readBufferPosition++] = b;
-//                            }
-//                        }
-//                    }
-                }else if (bytesAvailable > 0) {
-                    //Log.e(TAG,"data packet length < 5 , value = " + bytesAvailable);
-                }else{
-
                 }
             } catch (IOException e) {
                 Log.d(TAG,"disconnected",e);
