@@ -1,11 +1,5 @@
-package com.example.jihwa.androidbluetoothwithbluecoveprac.protocol;
+package protocol;
 
-
-import android.os.Environment;
-
-import com.example.jihwa.androidbluetoothwithbluecoveprac.SocketManager;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -13,7 +7,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Hashtable;
-import java.util.Queue;
 
 /**
  * Created by jihwa on 2017-05-24.
@@ -35,20 +28,19 @@ public class DataProcess {
     // computer 환경이라면, 모든 Log부분에 주석을 달아주세요.
 
     // 실행 환경에 맞게끔, usePath를 변경.
-    private static final String androidPATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TestPath";
+    //private static final String androidPATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TestPath";
     private static final String computerPATH = "";
 
-    private static final String usePath = androidPATH;
-    private static final Queue<String> mMsgQueue = SocketManager.getmMsgQueue();
+    private static final String usePath = computerPATH;
 
 
-    public DataProcess(@NotNull Id id){
+    public DataProcess( Id id){
         this(null,null,id);
     }
 
 
 
-    public DataProcess(StartFlag startFlag, EndFlag endFlag, @NotNull Id id) {
+    public DataProcess(StartFlag startFlag, EndFlag endFlag,  Id id) {
         this.mStartFlag = startFlag;
         this.mEndFlag = endFlag;
         this.mId = id;
@@ -66,7 +58,6 @@ public class DataProcess {
         if(processHash.size() <1){
             // status part
             processHash.put(Id.STATUS_COIN_BATTERY,(byte[] bytes) ->{
-                    mMsgQueue.add("BATTERY STATUS : "+new String(bytes));
                 });
 
             // data part
@@ -74,25 +65,25 @@ public class DataProcess {
                     String path = usePath;
                     mFile = new File(path);
                     mFile.mkdirs();
-                    mFile = new File(path + "/" + new String(data) + new Date() + ".txt");
+                    mFile = new File(path + new String(data));
                     try {
                         fileOutputStream = new FileOutputStream(mFile);
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
                     final String logString =  "file write[" + mFile.getPath() + "] StartFlag[" + mFile.getName() + "] fileSize = " + mFile.length();
-                    Logging.log(logString);
+                    //Log.d(TAG, logString);
                 });
 
             processHash.put(Id.DATA_BODY, (byte[] data)-> {
                 try {
                     final String logString = "DATA BODY - data length = " + data.length;
-                    Logging.log(logString);
+                    //Log.d(TAG,logString);
                     if(data!=null)
                         fileOutputStream.write(data);
                     fileOutputStream.flush();
                 } catch (IOException e) {
-                    Logging.log("file output exception in process" + e);
+                    //Log.d(TAG,"file output exception in process" + e);
                 }
             });
 
@@ -100,12 +91,12 @@ public class DataProcess {
             processHash.put(Id.DATA_END, (byte[] data)-> {
                 try {
                     final String logString = "DATA END - file length = " + mFile.length();
-                    Logging.log(logString);
+                    //Log.d(TAG,logString);
                     fileOutputStream.close();
                     fileOutputStream = null;
                     mFile = null;
                 } catch (IOException e) {
-                    Logging.log("file output exception in process" + e);
+                    //Log.d(TAG,"file output exception in process" + e);
                 }
             });
         }

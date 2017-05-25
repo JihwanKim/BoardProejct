@@ -1,12 +1,5 @@
-package com.example.jihwa.androidbluetoothwithbluecoveprac;
+package protocol;
 
-import android.util.Log;
-
-import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.EndFlag;
-import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.Id;
-import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.StartFlag;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 
@@ -14,7 +7,7 @@ import java.util.Arrays;
  * Created by jihwa on 2017-05-23.
  */
 
-public class ProtocolHeader {
+public class AnalysisProtocolHeader {
 
     private static final int START_FLAG = 1;
     private static final int END_FLAG = 1;
@@ -29,7 +22,7 @@ public class ProtocolHeader {
 
     private int dataLength = 0;
 
-    public ProtocolHeader(@NotNull byte[] packet) {
+    public AnalysisProtocolHeader(byte[] packet) {
         mPacket = packet;
         analysisHeader();
 
@@ -69,7 +62,6 @@ public class ProtocolHeader {
             int a = (mPacket[3]&0xFF)<<8;
             int b = mPacket[4]&0xFF;
             dataLength = a+b;
-            Log.d("PACKET part","datalength = " + dataLength);
         }
         return startFlag !=null;
     }

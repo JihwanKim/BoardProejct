@@ -9,16 +9,17 @@ import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.CreateProtocol;
 import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.DataProcess;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.AnalysisProtocolHeader;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.DataSenderOnlyTest;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.EndFlag;
 import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.Id;
 import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.StartFlag;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -30,6 +31,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class SocketManager {
     private static final String TAG = "BluetoothServer";
+    private static final boolean TEST = true;
 
     private final BluetoothAdapter mLocalDevice;
 
@@ -42,7 +44,8 @@ public class SocketManager {
     private OutputStream mOutputStream = null;
 
     // 받는 메세지가 저장될 큐
-    private ArrayBlockingQueue<String> mMsgQueue = new ArrayBlockingQueue<>(20);
+    private static final ArrayBlockingQueue<String> mMsgQueue = new ArrayBlockingQueue<>(20);
+
 
     private final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
@@ -50,14 +53,6 @@ public class SocketManager {
     private ArrayAdapter<String> mConversationArrayAdapter;
 
     private MsgTask mMsgTask;
-
-    private boolean isReceiveFile = false;
-
-    // 파일 전송받을때, 처음엔 1초간 대기하고, 스트림을 각각 읽을때마다 100ms만큼 대기함.
-    //약 350kb 기준 3.3초정도
-    private final int fileReceiveStartDelayTime = 1000;
-    private int fileReceiveDelayTime = 100;
-
 
     public SocketManager(TextView textViewConnectionStatus, ArrayAdapter<String> conversationArrayAdapter){
         // TextView와 ArrayAdapter 모두 Activity가 아니라면, UI 변수를 가져올 수 없으므로, 인자로 받아와서 초기화한다.
@@ -126,34 +121,28 @@ public class SocketManager {
     // 메세지를 받는 함수. 일반 메세지의 길이가 1010 byte를 넘기면, 메세지 처리중 에러가 뜬다.
     private void msgReceive() {
         // message send
-        byte[] readBuffer = new byte[1024];
-        int readBufferPosition = 0;
-        File file = null;
-        FileOutputStream out = null;
-        ProtocolHeader protocolHeader = null;
+        AnalysisProtocolHeader analysisProtocolHeader = null;
         while(true){
             try{
                 if(!mBluetoothSocket.isConnected()) {
                     Log.d(TAG,"disconnected check in msgReceive");
                     return;
                 }
-                // 근데 왜또되냐 진짜 미치겠네.
-                // 읽을 수 있는 bytes 를 확인함
-                // 아래는 주석 두줄은 구글번역기
-                // 블록하지 않고이 입력 Stream로부터 읽어 들일 수가있는 (또는 스킵 할 수있다)
-                // 바이트 수의 추정치. 입력 Stream의 마지막에 이르렀을 때의 바이트 수.
+
+                // 읽을 수 있는 byte length 를 확인함
                 int bytesAvailable = mInputStream.available();
-                // 만약, 대기중인게 있을 경우,
-                if(bytesAvailable >= protocolHeader.HEADER_LENGTH) {
+
+                // 만약,  헤더가 도착해있을 경우
+                if(bytesAvailable >= AnalysisProtocolHeader.HEADER_LENGTH) {
                     // packet으로 온 bytes를 저장할 변수를 선언함
-                    byte[] dataPackets = new byte[protocolHeader.HEADER_LENGTH];
+                    byte[] dataPackets = new byte[AnalysisProtocolHeader.HEADER_LENGTH];
                     //read from the inputStream
                     // mInputStream에서 읽어온 bytes를 packetBytes에 저장함.
                     mInputStream.read(dataPackets);
                     Log.d(TAG,"read packet");
 
-                    protocolHeader = new ProtocolHeader(dataPackets);
-                    Log.d(TAG,"id = " + protocolHeader.getId().toString() + " available =  " + bytesAvailable);
+                    analysisProtocolHeader = new AnalysisProtocolHeader(dataPackets);
+                    Log.d(TAG,"id = " + analysisProtocolHeader.getId().toString() + " available =  " + bytesAvailable);
                     for(int i = 0 ; i < dataPackets.length ; i ++)
                         Log.d(TAG," value = " + dataPackets[i]);
                     //
@@ -163,31 +152,33 @@ public class SocketManager {
                     // newFile. writeFile, endFile
                     //
                     //
-                    if (protocolHeader.analysisHeader()) {
+                    if (analysisProtocolHeader.analysisHeader()) {
                         Log.d(TAG,"analysis header");
                         // 분석됐으면 동작하기.
 
 
-                        Log.d(TAG,"this order = " + protocolHeader.getStartFlag().toString());
+                        Log.d(TAG,"this order = " + analysisProtocolHeader.getStartFlag().toString());
                         //  만약,  header에 저장되어있는 데이터의 길이가 0보다 클경우, data가 포함되어있으므로 아래를 실행함.
-                        if(protocolHeader.getDataLength() > 0) {
-                            while (protocolHeader.getDataLength() > mInputStream.available()) {
+                        if(analysisProtocolHeader.getDataLength() > 0) {
+                            while (analysisProtocolHeader.getDataLength() > mInputStream.available()) {
 
                             }
                             Log.d(TAG, "available length = " + mInputStream.available());
 
-                            if (protocolHeader.getDataLength() <= mInputStream.available()) {
-                                byte[] packetData = new byte[protocolHeader.getDataLength()];
+                            if (analysisProtocolHeader.getDataLength() <= mInputStream.available()) {
+                                byte[] packetData = new byte[analysisProtocolHeader.getDataLength()];
                                 mInputStream.read(packetData);
                                 Log.d(TAG, "packet Data length = " + packetData.length);
-                                new DataProcess(protocolHeader.getId(), packetData).getProcess().process(packetData);
+                                new DataProcess(analysisProtocolHeader.getId()).process(packetData);
                             }
+                        } else {
+                            new DataProcess(analysisProtocolHeader.getId()).process(null);
                         }
-                        else {
-                            new DataProcess(protocolHeader.getId()).getProcess().process(null);
-                        }
-
+                    }else{
+                        //  해당부분이 실행되면, 에러터진것. 헤더 분석이 제대로 안된것.
                     }
+                }else if (bytesAvailable>0){
+                    // 이부분도 에러터진것. header의 길이가 0보다크고 5보다 작은경우 발생. 주의
                 }
             } catch (IOException e) {
                 Log.d(TAG,"disconnected",e);
@@ -205,11 +196,17 @@ public class SocketManager {
 
         // 보내는 메세지를 ArrayAdapter에 추가시키고, 마지막에 \n을 붙여준다.
         mConversationArrayAdapter.insert("YOU" + ": " + sendMessage, 0);
-        sendMessage+="\n";
         try {
             // 파일을 byte 타입으로 변환하여 보내준다.
-
-            mOutputStream.flush();
+            if(TEST && sendMessage.length() == 4){
+                Log.d(TAG,"send Temp" + sendMessage);
+                new DataSenderOnlyTest(mOutputStream).sendData(Environment.getExternalStorageDirectory().getAbsolutePath() + "/TestPath/temp.txt");
+            }else{
+//                Log.d(TAG,"sendMessage" + sendMessage);
+//                sendMessage+="\n";
+//                mOutputStream.write(sendMessage.getBytes());
+                mOutputStream.flush();
+            }
         } catch (IOException e) {
             // 만약, 스트림 연결이 안되어있으면, 해당 익셉션 처리 후, 소켓을 닫아준다.
             Log.d(TAG,"send message : broken pipe - " + e.getMessage());
@@ -242,21 +239,22 @@ public class SocketManager {
         @Override
         protected Void doInBackground(Void... params) {
             publishProgress(null);
-            while(mBluetoothSocket.isConnected()){
-                if(mMsgQueue.size()>0) {
-                    String str = null;
-                    try {
-                        str = mMsgQueue.take();
-                    } catch (InterruptedException e) {
-                        Log.e(TAG,"interrupt exception in msg take - " + e.getMessage());
+            if(mBluetoothSocket != null)
+                while(mBluetoothSocket.isConnected()){
+                    if(mMsgQueue.size()>0) {
+                        String str = null;
+                        try {
+                            str = mMsgQueue.take();
+                        } catch (InterruptedException e) {
+                            Log.e(TAG,"interrupt exception in msg take - " + e.getMessage());
+                        }
+                        if(str!=null)
+                            publishProgress(str);
+                        if(mBluetoothSocket != null)
+                            if(!mBluetoothSocket.isConnected())
+                                return null;
                     }
-                    if(str!=null)
-                        publishProgress(str);
-                    if(mBluetoothSocket != null)
-                        if(!mBluetoothSocket.isConnected())
-                            return null;
                 }
-            }
             return null;
         }
 
@@ -297,5 +295,10 @@ public class SocketManager {
                 mBluetoothSocket.close();
         } catch (IOException e) {
         }
+    }
+
+
+    public static ArrayBlockingQueue<String> getmMsgQueue() {
+        return mMsgQueue;
     }
 }
