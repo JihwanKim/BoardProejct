@@ -19,6 +19,7 @@ public class DataSenderOnlyTest {
     public DataSenderOnlyTest(OutputStream socketOutputStream) {
         this.mOutputStream = socketOutputStream;
     }
+    // path로 들어오는 파일을 불러들여서, 상대편으로 보내준다.
     public void sendData(String path){
         try {
             File file = new File(path);

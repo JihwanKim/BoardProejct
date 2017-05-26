@@ -6,23 +6,37 @@ package com.example.jihwa.androidbluetoothwithbluecoveprac.protocol;
 
 
 public enum StartFlag {
-    MODULE_CONTROL,MODULE_STATUS,DOSE,ERROR, DATA;
-
-    public static byte getByte(StartFlag src)  {
-        switch(src){
-            case MODULE_CONTROL:
-                return 0x01;
-            case MODULE_STATUS:
-                return 0x02;
-            case DATA:
-                return 0x03;
-            case DOSE:
-                return 0x04;
-            default:
-                return (byte) 0xFF;
+    MODULE_CONTROL {
+        @Override
+        public byte getByte() {
+            return 0x01;
         }
-    }
+    },MODULE_STATUS {
+        @Override
+        public byte getByte() {
+            return 0x02;
+        }
+    }, DATA {
+        @Override
+        public byte getByte() {
+            return 0x03;
+        }
+    },DOSE {
+        @Override
+        public byte getByte() {
+            return 0x04;
+        }
+    },ERROR {
+        @Override
+        public byte getByte() {
+            return (byte) 0xFF;
+        }
+    };
 
+    // enum 값에 해당되는 header에 붙일 byte값을 가져온다.
+    public abstract byte getByte();
+
+    // header에 있는 byte값을 가지고 해당 enum 값을 가져온다.
     public static StartFlag getStartFlag(byte bt) {
         switch(bt){
             case 0x01:

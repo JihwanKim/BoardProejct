@@ -41,12 +41,11 @@ public class DataProcess {
     private static final String usePath = androidPATH;
     private static final Queue<String> mMsgQueue = SocketManager.getmMsgQueue();
 
-
+    // 실질적으로 실행할 함수를 식별할 때 사용하는 값은 Id 하나만 사용하며, 다른 값은
+    // 이후 추가될 수 있으므로 남겨놓음.
     public DataProcess(@NotNull Id id){
         this(null,null,id);
     }
-
-
 
     public DataProcess(StartFlag startFlag, EndFlag endFlag, @NotNull Id id) {
         this.mStartFlag = startFlag;
@@ -55,19 +54,22 @@ public class DataProcess {
         initHashtable();
     }
 
-    // @param data : 처리할 데이터를 입력.
+    // param data : 처리할 데이터를 입력.
+    // 해당 클래스를 생성할 때 사용했던
     public void process(byte[] data){
         processHash.get(mId).process(data);
     }
 
 
     // status 와 data만 구현
+    // 각 해쉬테이블에 key 값은 Id enum 로, value는 IDataProcess Interface 를 사용한다.
+    // 각  value에는 해당 Id가 들어왔을 때 동작하는 것을 나타낸다.
     private void initHashtable(){
         if(processHash.size() <1){
             // status part
             processHash.put(Id.STATUS_COIN_BATTERY,(byte[] bytes) ->{
-                    mMsgQueue.add("BATTERY STATUS : "+new String(bytes));
-                });
+                mMsgQueue.add("BATTERY STATUS : "+new String(bytes));
+            });
 
             // data part
             processHash.put(Id.DATA_NAME, (byte[] data)->{

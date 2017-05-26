@@ -5,65 +5,121 @@ package com.example.jihwa.androidbluetoothwithbluecoveprac.protocol;
  */
 
 public enum Id{
-    STATUS_POWER, STATUS_COIN_BATTERY, STATUS_SENSOR, CONTROL_TIME, DOSE_CHECKSUM, CONTROL_START, CONTROL_STOP,
-    CONTROL_RESET, CONTROL_SLEEP_MODE, STATUS_MEASURING_TIME, DOSE_UPDATE, DOSE_TOTAL_COUNT, DOSE_TOTAL_DATA,
-    ERROR, DATA_SAVE_YES, DATA_SAVE_NO, DATA_END, DATA_BODY, DATA_NAME;
+    CONTROL_START {
+        @Override
+        public byte getByte() {
+            return 0x01;
+        }
+    }, CONTROL_STOP {
+        @Override
+        public byte getByte() {
+            return 0x02;
+        }
+    }, CONTROL_RESET {
+        @Override
+        public byte getByte() {
+            return 0x03;
+        }
+    }, CONTROL_SLEEP_MODE {
+        @Override
+        public byte getByte() {
+            return 0x04;
+        }
+    }, CONTROL_TIME {
+        @Override
+        public byte getByte() {
+            return 0x05;
+        }
+    }
+
+    , STATUS_POWER {
+        @Override
+        public byte getByte() {
+            return 0x06;
+        }
+    }, STATUS_COIN_BATTERY {
+        @Override
+        public byte getByte() {
+            return 0x07;
+        }
+    }, STATUS_SENSOR {
+        @Override
+        public byte getByte() {
+            return 0x08;
+        }
+    }, STATUS_MEASURING_TIME {
+        @Override
+        public byte getByte() {
+            return 0x09;
+        }
+    }
+
+    , DOSE_UPDATE {
+        @Override
+        public byte getByte() {
+            return 0x0B;
+        }
+    }, DOSE_TOTAL_COUNT {
+        @Override
+        public byte getByte() {
+            return 0x0C;
+        }
+    }, DOSE_TOTAL_DATA {
+        @Override
+        public byte getByte() {
+            return 0x0D;
+        }
+    }, DOSE_CHECKSUM {
+        @Override
+        public byte getByte() {
+            return 0x0E;
+        }
+    }
+
+    , DATA_NAME {
+        @Override
+        public byte getByte() {
+            return 0x11;
+        }
+    }, DATA_BODY {
+        @Override
+        public byte getByte() {
+            return 0x12;
+        }
+    }, DATA_END {
+        @Override
+        public byte getByte() {
+            return 0x13;
+        }
+    }, DATA_SAVE_YES {
+        @Override
+        public byte getByte() {
+            return 0x14;
+        }
+    }, DATA_SAVE_NO {
+        @Override
+        public byte getByte() {
+            return 0x15;
+        }
+    }
+
+    , ERROR {
+        @Override
+        public byte getByte() {
+            return (byte) 0xFF;
+        }
+    };
 
     public static Id[] getIdList(){
         return new Id[]{STATUS_POWER, STATUS_COIN_BATTERY, STATUS_SENSOR, CONTROL_TIME, DOSE_CHECKSUM, CONTROL_START, CONTROL_STOP,
                 CONTROL_RESET, CONTROL_SLEEP_MODE, STATUS_MEASURING_TIME, DOSE_UPDATE, DOSE_TOTAL_COUNT, DOSE_TOTAL_DATA,
                 ERROR, DATA_SAVE_YES, DATA_SAVE_NO, DATA_END, DATA_BODY, DATA_NAME};
     }
-    public static byte getByte(Id id){
-        switch(id){
-            case CONTROL_START:
-                return 0x01;
-            case CONTROL_STOP:
-                return 0x02;
-            case CONTROL_RESET:
-                return 0x03;
-            case CONTROL_SLEEP_MODE:
-                return 0x04;
-            case CONTROL_TIME:
-                return 0x05;
 
-            case STATUS_POWER:
-                return 0x06;
-            case STATUS_COIN_BATTERY:
-                return 0x07;
-            case STATUS_SENSOR:
-                return 0x08;
-            case STATUS_MEASURING_TIME:
-                return 0x09;
+    // enum 값에 해당되는 header에 붙일 byte값을 가져온다.
+    public abstract byte getByte();
 
-            case DOSE_UPDATE:
-                return 0x0B;
-            case DOSE_TOTAL_COUNT:
-                return 0x0C;
-            case DOSE_TOTAL_DATA:
-                return 0x0D;
-            case DOSE_CHECKSUM:
-                return 0x0E;
-
-            case DATA_NAME:
-                return 0x11;
-            case DATA_BODY:
-                return 0x12;
-            case DATA_END:
-                return 0x13;
-            case DATA_SAVE_YES:
-                return 0x14;
-            case DATA_SAVE_NO:
-                return 0x15;
-
-            case ERROR:
-                return 0x0F;
-
-            default:
-                return (byte) 0xFF;
-        }
-    }
-
+    // header에 있는 byte값을 가지고 해당 enum 값을 가져온다.
     public static Id getId(byte id){
         switch(id){
             case 0x01:
@@ -115,6 +171,7 @@ public enum Id{
     }
 
 
+    // String값을 가지고 해당 enum 값을 가져온다.
     public static Id getId(String str){
         if(str.toLowerCase().equals("start"))
             return CONTROL_START;

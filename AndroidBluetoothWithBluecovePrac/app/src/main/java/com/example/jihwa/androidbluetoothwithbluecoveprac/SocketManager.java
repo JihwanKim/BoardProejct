@@ -33,6 +33,9 @@ public class SocketManager {
     private static final String TAG = "BluetoothServer";
     private static final boolean TEST = true;
 
+    // 받는 메세지가 저장될 큐
+    private static final ArrayBlockingQueue<String> mMsgQueue = new ArrayBlockingQueue<>(20);
+
     private final BluetoothAdapter mLocalDevice;
 
     private BluetoothServerSocket mBluetoothServerSocket;
@@ -42,10 +45,6 @@ public class SocketManager {
 
     private InputStream mInputStream = null;
     private OutputStream mOutputStream = null;
-
-    // 받는 메세지가 저장될 큐
-    private static final ArrayBlockingQueue<String> mMsgQueue = new ArrayBlockingQueue<>(20);
-
 
     private final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
@@ -143,21 +142,11 @@ public class SocketManager {
 
                     analysisProtocolHeader = new AnalysisProtocolHeader(dataPackets);
                     Log.d(TAG,"id = " + analysisProtocolHeader.getId().toString() + " available =  " + bytesAvailable);
-                    for(int i = 0 ; i < dataPackets.length ; i ++)
-                        Log.d(TAG," value = " + dataPackets[i]);
-                    //
+
                     // 만약, 데이터 길이가 0보다 크면 조건걸어서 처리.
                     // data bytes가 존재하는것과 존재하지 않는것 미리 구분해놓기.
-                    // enum Id 에 해당 부분을
-                    // newFile. writeFile, endFile
-                    //
-                    //
                     if (analysisProtocolHeader.analysisHeader()) {
-                        Log.d(TAG,"analysis header");
-                        // 분석됐으면 동작하기.
-
-
-                        Log.d(TAG,"this order = " + analysisProtocolHeader.getStartFlag().toString());
+                        Log.d(TAG,"analysis header and data process");
                         //  만약,  header에 저장되어있는 데이터의 길이가 0보다 클경우, data가 포함되어있으므로 아래를 실행함.
                         if(analysisProtocolHeader.getDataLength() > 0) {
                             while (analysisProtocolHeader.getDataLength() > mInputStream.available()) {
@@ -296,7 +285,6 @@ public class SocketManager {
         } catch (IOException e) {
         }
     }
-
 
     public static ArrayBlockingQueue<String> getmMsgQueue() {
         return mMsgQueue;
