@@ -1,4 +1,5 @@
 import com.sun.istack.internal.NotNull;
+import protocol.*;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -72,39 +73,29 @@ class SendThread implements Runnable{
                     // TODO : protocol 을 사용해서 전송하는 부분 해보기
                     byte[] fileByte = Files.readAllBytes(file.toPath());
                     int sendByteLength = 0;
-                    byte[] packet =JHProtocol.makePacket(JHProtocol.makeHeader(JHProtocol.StartFlag.DATA,JHProtocol.Id.DATA_NAME),file.getName().getBytes());
-                    for(int i = 0 ; i < 5 ; i ++){
+                    byte[] packet =new CreateProtocol(StartFlag.DATA,Id.DATA_NAME,file.getName().getBytes()).toProtocol();
+                    System.out.println("name packet length = "+packet.length + "      file name length = " + file.getName().length());
+                    for(int i = 0 ; i < 9 ; i ++){
                         System.out.print(i + " = " +packet[i] +"\t");
                     }
                     System.out.println();
                     mOutputStream.write(packet);
                     mOutputStream.flush();
 
-                    packet =JHProtocol.makePacket(JHProtocol.makeHeader(JHProtocol.StartFlag.DATA,JHProtocol.Id.DATA_BODY),fileByte);
-                    for(int i = 0 ; i < 5 ; i ++){
+                    packet =new CreateProtocol(StartFlag.DATA,Id.DATA_BODY,fileByte).toProtocol();
+                    for(int i = 0 ; i < 9 ; i ++){
                         System.out.print(i + " = " +packet[i] +"\t");
                     }
                     System.out.println();
                     mOutputStream.write(packet);
                     mOutputStream.flush();
 
-                    packet =JHProtocol.makePacket(JHProtocol.makeHeader(JHProtocol.StartFlag.DATA,JHProtocol.Id.DATA_END),null);
+                    packet =new CreateProtocol(StartFlag.DATA, Id.DATA_END,null).toProtocol();
                     for(int i = 0 ; i < 5 ; i ++){
                         System.out.print(i + " = " +packet[i] +"\t");
                     }
                     System.out.println();
                     mOutputStream.write(packet);
-                    mOutputStream.flush();
-
-                    System.out.println("loop num = " +" byteLength = " + sendByteLength);
-
-
-                    mOutputStream.flush();
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                     mOutputStream.flush();
 
                     System.out.println("sendFile TOTAL - " + file.length());
@@ -133,19 +124,37 @@ class ReceiveThread implements Runnable{
         mInputStream = stream;
     }
     public void run() {
+        byte[] headerByte = new byte[5];
+        int length;
         while(true){
-            String sb;
-            BufferedReader bReader2=new BufferedReader(new InputStreamReader(mInputStream));
-            while(true){
-                try{
-                    sb = (bReader2.readLine());
-                    if(sb!=null)
-                        System.out.println("["+ new Date() +"] ReceiveMsg = "+sb);
-                } catch (IOException e) {
-                    try {
-                        mInputStream.close();
-                    } catch (IOException e1) {
+            try{
+                length = mInputStream.available();
+                if(length >= 5 ) {
+                    mInputStream.read(headerByte);
+                    AnalysisProtocolHeader header = new AnalysisProtocolHeader(headerByte);
+                    if(header.getStartFlag() == StartFlag.DATA){
+                        System.out.println("[" + new Date() + "] ReceiveData Id");
+                        while(header.getDataLength() > mInputStream.available()){
+                            System.out.println("[" + new Date() + "] ReceiveData length = " + mInputStream.available());}
+                        byte[] data= new byte[header.getDataLength()];
+                        mInputStream.read(data);
+                        new DataProcess(header.getId()).process(data);
+                        System.out.println("[" + new Date() + "] ReceiveData = " + data.length);
+                        System.out.println("[" + new Date() + "] ReceiveMsg = " + new String(data,"UTF-8"));
                     }
+                    if (headerByte != null)
+                        System.out.println("[" + new Date() + "] ReceiveMsg = " + new String(headerByte,"UTF-8"));
+                }else{
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (IOException e) {
+                try {
+                    mInputStream.close();
+                } catch (IOException e1) {
                 }
             }
         }

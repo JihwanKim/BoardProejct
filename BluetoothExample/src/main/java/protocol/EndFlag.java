@@ -6,20 +6,32 @@ package protocol;
  */
 
 public enum EndFlag{
-    WRITE,RESPONSE,REQUEST, ERROR;
-    public static byte getByte(EndFlag flag){
-        switch(flag) {
-            case WRITE:
-                return 0x01;
-            case RESPONSE:
-                return 0x02;
-            case REQUEST:
-                return 0x03;
-            default:
-                return (byte) 0xFF;
+    WRITE {
+        @Override
+        public byte getByte() {
+            return 0x01;
         }
-    }
+    },RESPONSE {
+        @Override
+        public byte getByte() {
+            return 0x02;
+        }
+    },REQUEST {
+        @Override
+        public byte getByte() {
+            return 0x03;
+        }
+    }, ERROR {
+        @Override
+        public byte getByte() {
+            return (byte) 0xFF;
+        }
+    };
 
+    // enum 값에 해당되는 header에 붙일 byte값을 가져온다.
+    public abstract byte getByte();
+
+    // header에 있는 byte값을 가지고 해당 enum 값을 가져온다.
     public static EndFlag getEndFlag(byte bt){
         switch(bt){
             case 0x01:
@@ -33,20 +45,21 @@ public enum EndFlag{
         }
     }
 
-    public static byte getByteUsingStartFlag(StartFlag flag){
+    // Start flag를 사용하여, 정해진 EndFlag 값을 반환한다.
+    public static EndFlag getByteUsingStartFlag(StartFlag flag){
         switch(flag){
             case MODULE_CONTROL:
-                return getByte(WRITE);
+                return WRITE;
             case MODULE_STATUS:
-                return getByte(REQUEST);
+                return REQUEST;
             case DATA:
-                return getByte(WRITE);
+                return WRITE;
             case DOSE:
-                return getByte(WRITE);
+                return WRITE;
             case ERROR:
-                return getByte(WRITE);
+                return WRITE;
             default:
-                return (byte) 0xFF;
+                return ERROR;
         }
     }
 }

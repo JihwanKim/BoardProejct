@@ -1,4 +1,4 @@
-package com.example.jihwa.androidbluetoothwithbluecoveprac.protocol;
+package protocol;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -24,7 +24,7 @@ public class DataSenderOnlyTest {
             byte[] fileBytes = new byte[(int) file.length()];
             buf.read(fileBytes);
             buf.close();
-            fileBytes = AnalysisProtocolHeader.arrayCombine(new CreateProtocolHeader(StartFlag.DATA,EndFlag.WRITE,Id.DATA_BODY,fileBytes.length).toHeader(),fileBytes);
+            //fileBytes = AnalysisProtocolHeader.arrayCombine(new CreateProtocolHeader(StartFlag.DATA,EndFlag.WRITE,Id.DATA_BODY,fileBytes.length).toHeader(),fileBytes);
             mOutputStream.write(fileBytes);
             mOutputStream.flush();
         } catch (FileNotFoundException e) {
