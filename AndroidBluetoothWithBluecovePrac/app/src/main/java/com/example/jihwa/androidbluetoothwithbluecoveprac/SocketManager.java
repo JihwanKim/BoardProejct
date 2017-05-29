@@ -9,13 +9,10 @@ import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.CreateProtocol;
+import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.CRC16;
 import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.DataProcess;
 import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.AnalysisProtocolHeader;
 import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.DataSenderOnlyTest;
-import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.EndFlag;
-import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.Id;
-import com.example.jihwa.androidbluetoothwithbluecoveprac.protocol.StartFlag;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -157,6 +154,8 @@ public class SocketManager {
                             if (analysisProtocolHeader.getDataLength() <= mInputStream.available()) {
                                 byte[] packetData = new byte[analysisProtocolHeader.getDataLength()];
                                 mInputStream.read(packetData);
+                                Log.d(TAG,"crc result = "+ analysisProtocolHeader.getCrc() + " , " + CRC16.getDataCRC(packetData) + "  ,   "
+                                        + CRC16.checkData(analysisProtocolHeader.getCrc(),packetData));
                                 Log.d(TAG, "packet Data length = " + packetData.length);
                                 new DataProcess(analysisProtocolHeader.getId()).process(packetData);
                             }
@@ -194,7 +193,8 @@ public class SocketManager {
 //                Log.d(TAG,"sendMessage" + sendMessage);
 //                sendMessage+="\n";
 //                mOutputStream.write(sendMessage.getBytes());
-                mOutputStream.flush();
+                if(mOutputStream != null)
+                    mOutputStream.flush();
             }
         } catch (IOException e) {
             // 만약, 스트림 연결이 안되어있으면, 해당 익셉션 처리 후, 소켓을 닫아준다.
