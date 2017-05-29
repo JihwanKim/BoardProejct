@@ -1,6 +1,8 @@
 package com.example.jihwa.androidbluetoothwithbluecoveprac.protocol;
 
 
+import android.util.Log;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -15,12 +17,14 @@ public class AnalysisProtocolHeader {
     private static final int END_FLAG = 1;
     private static final int ID = 1;
     private static final int LENGTH = 2;
-    public static final int HEADER_LENGTH = START_FLAG + END_FLAG + ID + LENGTH ;
+    private static final int DATA_CHECK = 4;
+    public static final int HEADER_LENGTH = START_FLAG + END_FLAG + ID + LENGTH +DATA_CHECK;
 
     byte[] mPacket = null;
     private StartFlag startFlag = null;
     private EndFlag endFlag = null;
     private Id id = null;
+    private int crc = 0;
 
     private int dataLength = 0;
 
@@ -50,6 +54,10 @@ public class AnalysisProtocolHeader {
         return dataLength;
     }
 
+    public int getCrc(){
+        return crc;
+    }
+
     public byte[] getData()  {
         return Arrays.copyOfRange(mPacket,5, dataLength);
     }
@@ -63,6 +71,9 @@ public class AnalysisProtocolHeader {
             //(((int)mPacket[1]&0xFF)<<8 )+ (int)mPacket[0]&0xFF; ????<< 왜 얘는 안되지 ?
             int a = (mPacket[3]&0xFF)<<8;
             int b = mPacket[4]&0xFF;
+
+            crc = java.nio.ByteBuffer.wrap(Arrays.copyOfRange(mPacket,5,9)).getInt();
+            Log.d("BluetoothServer","crc = "+crc);
             dataLength = a+b;
             Logging.log("datalength = " + dataLength);
         }
