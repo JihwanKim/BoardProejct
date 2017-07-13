@@ -5,7 +5,6 @@ import java.io.*;
 
 // 해당오류 무시해도됨.
 import java.nio.file.Files;
-import java.util.Date;
 import java.util.Scanner;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
@@ -13,26 +12,25 @@ import javax.microedition.io.StreamConnection;
 public class ObexPutClient {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-
+        Scanner scanner = new Scanner(System.in);
         String serverURL = null; // = "btgoep://0019639C4007:6";
-//        if ((args != null) && (args.length > 0)) {
-//            serverURL = args[0];
-//        }
-//        if (serverURL == null) {
-//            String[] searchArgs = null;
-//            // Connect to OBEXPutServer from examples
-//             searchArgs = new String[] { "0000110100001000800000805F9B34FB" };
-//            ServicesSearch.main(searchArgs);
-//            if (ServicesSearch.serviceFound.size() == 0) {
-//                System.out.println("OBEX service not found");
-//                return;
-//            }
-//            // Select the first service found
-//            serverURL = (String)ServicesSearch.serviceFound.elementAt(0);
-//        }
-        serverURL = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
-        //sppbtspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false
-        //String value = "btspp://F8E61A466934:5;authenticate=false;encrypt=false;master=false";
+        if ((args != null) && (args.length > 0)) {
+            serverURL = args[0];
+        }
+        if (serverURL == null) {
+            String[] searchArgs = null;
+            // Connect to OBEXPutServer from examples
+             searchArgs = new String[] { "0000110100001000800000805F9B34FB" };
+            ServicesSearch.main(searchArgs);
+            if (ServicesSearch.serviceFound.size() == 0) {
+                System.out.println("OBEX service not found");
+                return;
+            }
+            // Select the first service found
+            System.out.print("select server element : ");
+            serverURL = (String)ServicesSearch.serviceFound.elementAt(scanner.nextInt());
+        }
+
         System.out.println("connect url for spp"+serverURL);
         // 참고링크
         // http://stackoverflow.com/questions/15343369/sending-a-string-via-bluetooth-from-a-pc-as-client-to-a-mobile-as-server
@@ -58,7 +56,6 @@ class SendThread implements Runnable{
     }
     public void run() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(mOutputStream));
         Scanner scan = new Scanner(System.in);
         while(true){
             try {

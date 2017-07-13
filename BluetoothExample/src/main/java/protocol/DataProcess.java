@@ -9,7 +9,7 @@ import java.util.Hashtable;
  */
 
 public class DataProcess {
-    private static final Hashtable<HeaderId,IDataProcess> processHash = new Hashtable<>();
+    private static final Hashtable<HeaderId,IDataProcess> processHash = new Hashtable<HeaderId,IDataProcess>();
 
     private static FileOutputStream fileOutputStream = null;
     private static File mFile = null;
