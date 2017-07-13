@@ -9,16 +9,24 @@ import java.util.Arrays;
 
 public class AnalysisProtocolHeader {
 
-    private static final int START_FLAG = 1;
-    private static final int END_FLAG = 1;
-    private static final int ID = 1;
-    private static final int LENGTH = 2;
-    public static final int HEADER_LENGTH = START_FLAG + END_FLAG + ID + LENGTH ;
+    public static final int START_FLAG = 1;
+    public static final int ID = 1;
+    public static final int END_FLAG = 1;
+    public static final int ORDER_TABLE = 1;
+    public static final int LENGTH = 2;
+    public static final int CHECK_LENGTH = 2;
+    public static final int CRC = 2;
+
+    public static final int BASIC_HEADER_LENGTH = START_FLAG + ID + END_FLAG + ORDER_TABLE + LENGTH + CHECK_LENGTH;
+    public static final int HAS_DATA_HEADER_LENGTH = BASIC_HEADER_LENGTH + CRC;
 
     byte[] mPacket = null;
-    private StartFlag startFlag = null;
-    private EndFlag endFlag = null;
-    private Id id = null;
+    private HeaderStartFlag headerStartFlag = null;
+    private HeaderEndFlag headerEndFlag = null;
+    private HeaderId headerId = null;
+    private HeaderOrderTable headerOrderTable = null;
+    private int crc = 0;
+    public boolean hasCRC = false;
 
     private int dataLength = 0;
 
@@ -28,50 +36,81 @@ public class AnalysisProtocolHeader {
 
     }
 
-    // 헤더 및 데이터 분석
-    // 0xFF : 잘못된 명령으로 전송되었을 경우.
-    public StartFlag getStartFlag()  {
-        return startFlag;
+    // 헤더의 startFlag를 반환
+    public HeaderStartFlag getHeaderStartFlag() {
+        return headerStartFlag;
     }
 
-
-    public EndFlag getEndFlag()  {
-        return endFlag;
+    // 헤더의 endflag를 반환
+    public HeaderEndFlag getHeaderEndFlag() {
+        return headerEndFlag;
     }
 
-    public Id getId()  {
-        return id;
+    // 헤더의 ID를 반환
+    public HeaderId getHeaderId() {
+        return headerId;
     }
 
-    public int getDataLength()  {
-        // 왼쪽꺼가 연산이 안됨 .. ? ?
+    // 헤더의 오더테이블을 반환
+    public HeaderOrderTable getHeaderOrderTable() {
+        return headerOrderTable;
+    }
+
+    // 헤더의 데이터 길이를 반환
+    public int getDataLength() {
         return dataLength;
     }
 
-    public byte[] getData()  {
-        return Arrays.copyOfRange(mPacket,5, dataLength);
+    // 헤더의 crc값을 반환
+    public int getCrc() {
+        return crc;
     }
 
-    public boolean analysisHeader(){
-        if(startFlag == null){
-            startFlag = StartFlag.getStartFlag(mPacket[0]);
-            endFlag = EndFlag.getEndFlag(mPacket[1]);
-            id = Id.getId(mPacket[2]);
-
-            //(((int)mPacket[1]&0xFF)<<8 )+ (int)mPacket[0]&0xFF; ????<< 왜 얘는 안되지 ?
-            int a = (mPacket[3]&0xFF)<<8;
-            int b = mPacket[4]&0xFF;
-            dataLength = a+b;
-        }
-        return startFlag !=null;
+    // 해당 method 는 패킷으로 데이터를 읽었을때 사용. 근데 읽을일 없을꺼임.
+    public byte[] getData() {
+        return Arrays.copyOfRange(mPacket, 10, dataLength);
     }
 
+    public ErrorTable analysisHeader() {
+        headerStartFlag = HeaderStartFlag.getStartFlag(mPacket[0]);
+        if (headerStartFlag == HeaderStartFlag.ERROR)
+            return ErrorTable.START_FLAG_MISS;
+        headerId = HeaderId.getId(mPacket[1]);
+        if (headerId == HeaderId.ERROR)
+            return ErrorTable.ID_MISS;
 
-    public static byte[] arrayCombine(byte[] srcF,byte[]srcS){
-        byte[] bytes = new byte[srcF.length+srcS.length];
-        System.arraycopy(srcF,0,bytes,0,srcF.length);
-        System.arraycopy(srcS,0,bytes,srcF.length,srcS.length);
+        headerEndFlag = HeaderEndFlag.getEndFlag(mPacket[2]);
+        if (headerEndFlag == HeaderEndFlag.ERROR)
+            return ErrorTable.END_FLAG_MISS;
 
-        return bytes;
+        headerOrderTable = HeaderOrderTable.getOrder(mPacket[3]);
+        if (headerOrderTable != HeaderOrderTable.makeOrder(headerStartFlag, headerEndFlag, headerId))
+            return ErrorTable.ORDER_MISS;
+
+        // data length
+        int msb = (mPacket[4] & 0xFF) << 8;
+        int lsb = mPacket[5] & 0xFF;
+        dataLength = msb + lsb;
+
+        // check data length
+        msb = (mPacket[6] & 0xFF) << 8;
+        lsb = mPacket[7] & 0xFF;
+        if (dataLength != msb + lsb)
+            return ErrorTable.LENGTH_MISS;
+        if(dataLength > 0)
+            hasCRC = true;
+
+        return ErrorTable.NO_ERROR;
+    }
+
+    public void addCRC(byte[] crc) {
+        if (dataLength != 0)
+            // 8,9
+            this.crc = ((crc[0]&0xFF) << 8) + (crc[1]&0xFF);
+
+    }
+
+    public boolean isHasCRC() {
+        return hasCRC;
     }
 }

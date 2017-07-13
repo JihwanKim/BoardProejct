@@ -4,7 +4,7 @@ package protocol;
  * Created by jihwa on 2017-05-24.
  */
 
-public enum Id{
+public enum HeaderId {
     CONTROL_START {
         @Override
         public byte getByte() {
@@ -64,7 +64,7 @@ public enum Id{
         public byte getByte() {
             return 0x0C;
         }
-    }, DOSE_TOTAL_DATA {
+    }, DOSE_DATA {
         @Override
         public byte getByte() {
             return 0x0D;
@@ -76,7 +76,7 @@ public enum Id{
         }
     }
 
-    , DATA_NAME {
+    , DATA_START {
         @Override
         public byte getByte() {
             return 0x11;
@@ -110,17 +110,17 @@ public enum Id{
         }
     };
 
-    public static Id[] getIdList(){
-        return new Id[]{STATUS_POWER, STATUS_COIN_BATTERY, STATUS_SENSOR, CONTROL_TIME, DOSE_CHECKSUM, CONTROL_START, CONTROL_STOP,
-                CONTROL_RESET, CONTROL_SLEEP_MODE, STATUS_MEASURING_TIME, DOSE_UPDATE, DOSE_TOTAL_COUNT, DOSE_TOTAL_DATA,
-                ERROR, DATA_SAVE_YES, DATA_SAVE_NO, DATA_END, DATA_BODY, DATA_NAME};
+    public static HeaderId[] getIdList(){
+        return new HeaderId[]{STATUS_POWER, STATUS_COIN_BATTERY, STATUS_SENSOR, CONTROL_TIME, DOSE_CHECKSUM, CONTROL_START, CONTROL_STOP,
+                CONTROL_RESET, CONTROL_SLEEP_MODE, STATUS_MEASURING_TIME, DOSE_UPDATE, DOSE_TOTAL_COUNT, DOSE_DATA,
+                ERROR, DATA_SAVE_YES, DATA_SAVE_NO, DATA_END, DATA_BODY, DATA_START};
     }
 
     // enum 값에 해당되는 header에 붙일 byte값을 가져온다.
     public abstract byte getByte();
 
     // header에 있는 byte값을 가지고 해당 enum 값을 가져온다.
-    public static Id getId(byte id){
+    public static HeaderId getId(byte id){
         switch(id){
             case 0x01:
                 return CONTROL_START;
@@ -149,14 +149,14 @@ public enum Id{
             case 0x0C:
                 return DOSE_TOTAL_COUNT;
             case 0x0D:
-                return DOSE_TOTAL_DATA;
+                return DOSE_DATA;
             case 0x0E:
                 return DOSE_CHECKSUM;
             case 0x0F:
                 return ERROR;
 
             case 0x11:
-                return DATA_NAME;
+                return DATA_START;
             case 0x12:
                 return DATA_BODY;
             case 0x13:
@@ -172,7 +172,7 @@ public enum Id{
 
 
     // String값을 가지고 해당 enum 값을 가져온다.
-    public static Id getId(String str){
+    public static HeaderId getId(String str){
         if(str.toLowerCase().equals("start"))
             return CONTROL_START;
         if(str.toLowerCase().equals("stop"))
@@ -200,14 +200,14 @@ public enum Id{
         if(str.toLowerCase().equals("total_count"))
             return DOSE_TOTAL_COUNT;
         if(str.toLowerCase().equals("total_data"))
-            return DOSE_TOTAL_DATA;
+            return DOSE_DATA;
         if(str.toLowerCase().equals("checksum"))
             return DOSE_CHECKSUM;
         if(str.toLowerCase().equals("error"))
             return ERROR;
 
         if(str.toLowerCase().equals("name"))
-            return DATA_NAME;
+            return DATA_START;
         if(str.toLowerCase().equals("body"))
             return DATA_BODY;
         if(str.toLowerCase().equals("end"))

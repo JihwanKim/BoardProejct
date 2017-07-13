@@ -2,9 +2,11 @@ package protocol;
 
 /**
  * Created by jihwa on 2017-05-29.
+ * http://introcs.cs.princeton.edu/java/61data/CRC16.java
  */
 
-public class DataCheck {
+//CRC - 16
+public class CRC16 {
 
     private static final int[] table = {
             0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
@@ -48,11 +50,6 @@ public class DataCheck {
             crc = (crc >>> 8) ^ table[temp];
         }
         return crc;
-//                new byte[]{
-//                (byte)(crc >>> 24),
-//                (byte)(crc >>> 16),
-//                (byte)(crc >>> 8),
-//                (byte)crc};
     }
 
     public static boolean checkData(int getCrc, byte[] mData){

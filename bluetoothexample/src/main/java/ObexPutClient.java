@@ -2,6 +2,8 @@ import com.sun.istack.internal.NotNull;
 import protocol.*;
 
 import java.io.*;
+
+// 해당오류 무시해도됨.
 import java.nio.file.Files;
 import java.util.Date;
 import java.util.Scanner;
@@ -57,9 +59,10 @@ class SendThread implements Runnable{
     public void run() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(mOutputStream));
+        Scanner scan = new Scanner(System.in);
         while(true){
             try {
-                System.out.print("보낼 메세지 : ");
+                System.out.print("모드선택 ( 1. binary , 2. dose , 3. sendFile : ");
                 String sendMsg = reader.readLine();
                 if(sendMsg.equals("\"end\"")){
                     streamConnection.openInputStream().close();
@@ -67,13 +70,47 @@ class SendThread implements Runnable{
                     streamConnection.close();
                     return;
                 }
-                if(sendMsg.equals("sendFile")) {
-                    Scanner scan = new Scanner(System.in);
+
+                // * 각 모드에서 데이터를 전송하는 것은
+                // binary 모드
+                if(sendMsg.equals("1")){
+                    System.out.print("보낼 binary 값 ( 문자열의 좌측 문자가 MSB. 가장 우측 문자가 LSB. 해당 문자열은 오직 0과 1로만 이루어져야 합니다. 헤더와 crc값 모두 포함되어야합니다.) : ");
+                    String str = scan.nextLine();
+                    byte[] binaryBytes = new byte[str.length()%4!=0?str.length()/4+1:str.length()];
+                    int arrayIndex = -1;
+                    for(int i = 0 ; i < str.length(); i++){
+                        final int shift = i%8;
+                        if(shift == 0){
+                            arrayIndex++;
+                        }
+                        binaryBytes[arrayIndex] += ((str.charAt(i) - '0') << shift);
+                    }
+                    mOutputStream.write(binaryBytes);
+                    mOutputStream.flush();
+                    System.out.println("Sending Data = " + new String(binaryBytes));
+                } else if(sendMsg.equals("2")){
+                    // dose 모드
+                    System.out.print(" 보낼 Dose 데이터 값 ( 문자열의 좌측 문자가 MSB. 가장 우측 문자가 LSB. 해당 문자열은 오직 0과 1로만 이루어져야 합니다. )");
+                    String str = scan.nextLine();
+                    byte[] binaryBytes = new byte[str.length()%4!=0?str.length()/4+1:str.length()];
+                    int arrayIndex = -1;
+                    for(int i = 0 ; i < str.length(); i++){
+                        final int shift = i%8;
+                        if(shift == 0){
+                            arrayIndex++;
+                        }
+                        binaryBytes[arrayIndex] += ((str.charAt(i) - '0') << shift);
+                    }
+                    byte[] packet = new CreateProtocol(HeaderStartFlag.DOSE,HeaderId.DOSE_DATA,binaryBytes).toProtocol();
+                    mOutputStream.write(packet);
+                    mOutputStream.flush();
+                } else if(sendMsg.equals("3")) {
+                    // file send mode
+                    System.out.print("보낼 파일명 확장자를 포함해야합니다.: ");
                     File file = new File(scan.nextLine());
                     // TODO : protocol 을 사용해서 전송하는 부분 해보기
-                    byte[] fileByte = Files.readAllBytes(file.toPath());
                     int sendByteLength = 0;
-                    byte[] packet =new CreateProtocol(StartFlag.DATA,Id.DATA_NAME,file.getName().getBytes()).toProtocol();
+                    byte[] packet =new CreateProtocol(HeaderStartFlag.DATA, HeaderId.DATA_START,file.getName().getBytes()).toProtocol();
                     System.out.println("name packet length = "+packet.length + "      file name length = " + file.getName().length());
                     for(int i = 0 ; i < 9 ; i ++){
                         System.out.print(i + " = " +packet[i] +"\t");
@@ -82,7 +119,8 @@ class SendThread implements Runnable{
                     mOutputStream.write(packet);
                     mOutputStream.flush();
 
-                    packet =new CreateProtocol(StartFlag.DATA,Id.DATA_BODY,fileByte).toProtocol();
+                    byte[] fileByte = Files.readAllBytes(file.toPath());
+                    packet =new CreateProtocol(HeaderStartFlag.DATA,HeaderId.DATA_BODY,fileByte).toProtocol();
                     for(int i = 0 ; i < 9 ; i ++){
                         System.out.print(i + " = " +packet[i] +"\t");
                     }
@@ -90,7 +128,7 @@ class SendThread implements Runnable{
                     mOutputStream.write(packet);
                     mOutputStream.flush();
 
-                    packet =new CreateProtocol(StartFlag.DATA, Id.DATA_END,null).toProtocol();
+                    packet = new CreateProtocol(HeaderStartFlag.DATA, HeaderId.DATA_END,null).toProtocol();
                     for(int i = 0 ; i < 5 ; i ++){
                         System.out.print(i + " = " +packet[i] +"\t");
                     }
@@ -100,11 +138,9 @@ class SendThread implements Runnable{
 
                     System.out.println("sendFile TOTAL - " + file.length());
                 }else{
-                    //mOutputStream.write(JHProtocol.combineProtocolAndBody(JHProtocol.Name.SMSG,(sendMsg+"\n").getBytes()));
-                    mOutputStream.flush();
+                    System.out.println("mode miss");
                 }
 
-                System.out.println("["+new Date()+"]" + new String(sendMsg));
             } catch (IOException e) {
                 try {
                     mOutputStream.close();
@@ -124,26 +160,35 @@ class ReceiveThread implements Runnable{
         mInputStream = stream;
     }
     public void run() {
-        byte[] headerByte = new byte[5];
         int length;
         while(true){
             try{
                 length = mInputStream.available();
-                if(length >= 5 ) {
-                    mInputStream.read(headerByte);
-                    AnalysisProtocolHeader header = new AnalysisProtocolHeader(headerByte);
-                    if(header.getStartFlag() == StartFlag.DATA){
-                        System.out.println("[" + new Date() + "] ReceiveData Id");
-                        while(header.getDataLength() > mInputStream.available()){
-                            System.out.println("[" + new Date() + "] ReceiveData length = " + mInputStream.available());}
-                        byte[] data= new byte[header.getDataLength()];
+                if(length >= AnalysisProtocolHeader.BASIC_HEADER_LENGTH ) {
+                    byte[] headerPacket = new byte[AnalysisProtocolHeader.BASIC_HEADER_LENGTH ];
+                    mInputStream.read(headerPacket);
+                    AnalysisProtocolHeader header = new AnalysisProtocolHeader(headerPacket);
+                    System.out.println("Header Start flag = " + header.getHeaderStartFlag());
+                    System.out.println("Header Id flag = " + header.getHeaderId());
+                    System.out.println("Header End flag ( 예비바이트) = " + header.getHeaderEndFlag());
+                    System.out.println("check order = " + header.getHeaderOrderTable());
+                    System.out.println("Header length = " + header.getDataLength());
+                    System.out.println("Header length check = " + header.getDataLength());
+                    if(header.getDataLength() !=0){
+                        while(mInputStream.available() < AnalysisProtocolHeader.CRC);
+                        byte[] crc = new byte[AnalysisProtocolHeader.CRC];
+                        mInputStream.read(crc);
+                        header.addCRC(crc);
+                        while(mInputStream.available() < header.getDataLength());
+                        byte[] data = new byte[header.getDataLength()];
                         mInputStream.read(data);
-                        new DataProcess(header.getId()).process(data);
-                        System.out.println("[" + new Date() + "] ReceiveData = " + data.length);
-                        System.out.println("[" + new Date() + "] ReceiveMsg = " + new String(data,"UTF-8"));
+                        header.addCRC(data);
+
+                        System.out.println("Header crc = " + header.getCrc());
+                        System.out.println("Header data = " + header.getData());
+                    }else{
+                        System.out.println("data 미존재");
                     }
-                    if (headerByte != null)
-                        System.out.println("[" + new Date() + "] ReceiveMsg = " + new String(headerByte,"UTF-8"));
                 }else{
                     try {
                         Thread.sleep(100);

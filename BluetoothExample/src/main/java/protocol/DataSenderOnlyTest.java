@@ -1,6 +1,6 @@
 package protocol;
 
-import java.io.BufferedInputStream;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -17,20 +17,28 @@ public class DataSenderOnlyTest {
     public DataSenderOnlyTest(OutputStream socketOutputStream) {
         this.mOutputStream = socketOutputStream;
     }
+    // path로 들어오는 파일을 불러들여서, 상대편으로 보내준다.
     public void sendData(String path){
         try {
             File file = new File(path);
-            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
+
+            mOutputStream.write(new CreateProtocol(HeaderStartFlag.DATA, HeaderEndFlag.WRITE, HeaderId.DATA_START,file.getName().getBytes()).toProtocol());
+            mOutputStream.flush();
+
+
+            FileInputStream inputStream = new FileInputStream(file);
             byte[] fileBytes = new byte[(int) file.length()];
-            buf.read(fileBytes);
-            buf.close();
-            //fileBytes = AnalysisProtocolHeader.arrayCombine(new CreateProtocolHeader(StartFlag.DATA,EndFlag.WRITE,Id.DATA_BODY,fileBytes.length).toHeader(),fileBytes);
+            inputStream.read(fileBytes);
+            inputStream.close();
+            fileBytes = new CreateProtocol(HeaderStartFlag.DATA, HeaderEndFlag.WRITE, HeaderId.DATA_BODY,fileBytes).toProtocol();
             mOutputStream.write(fileBytes);
             mOutputStream.flush();
+
+
+            mOutputStream.write(new CreateProtocol(HeaderStartFlag.DATA, HeaderEndFlag.WRITE, HeaderId.DATA_END,null).toProtocol());
+            mOutputStream.flush();
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }

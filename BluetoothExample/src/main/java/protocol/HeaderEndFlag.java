@@ -5,7 +5,7 @@ package protocol;
  * Created by jihwa on 2017-05-24.
  */
 
-public enum EndFlag{
+public enum HeaderEndFlag {
     WRITE {
         @Override
         public byte getByte() {
@@ -32,7 +32,7 @@ public enum EndFlag{
     public abstract byte getByte();
 
     // header에 있는 byte값을 가지고 해당 enum 값을 가져온다.
-    public static EndFlag getEndFlag(byte bt){
+    public static HeaderEndFlag getEndFlag(byte bt){
         switch(bt){
             case 0x01:
                 return WRITE;
@@ -45,8 +45,8 @@ public enum EndFlag{
         }
     }
 
-    // Start flag를 사용하여, 정해진 EndFlag 값을 반환한다.
-    public static EndFlag getByteUsingStartFlag(StartFlag flag){
+    // Start flag를 사용하여, 정해진 HeaderEndFlag 값을 반환한다.
+    public static HeaderEndFlag getByteUsingStartFlag(HeaderStartFlag flag){
         switch(flag){
             case MODULE_CONTROL:
                 return WRITE;

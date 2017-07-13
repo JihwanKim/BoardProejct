@@ -5,7 +5,7 @@ package protocol;
  */
 
 
-public enum StartFlag {
+public enum HeaderStartFlag {
     MODULE_CONTROL {
         @Override
         public byte getByte() {
@@ -37,7 +37,7 @@ public enum StartFlag {
     public abstract byte getByte();
 
     // header에 있는 byte값을 가지고 해당 enum 값을 가져온다.
-    public static StartFlag getStartFlag(byte bt) {
+    public static HeaderStartFlag getStartFlag(byte bt) {
         switch(bt){
             case 0x01:
                 return MODULE_CONTROL;
@@ -52,7 +52,7 @@ public enum StartFlag {
         }
     }
 
-    public static StartFlag getStartFlag(String str) {
+    public static HeaderStartFlag getStartFlag(String str) {
         if (str.toLowerCase().equals("control")) {
             return MODULE_CONTROL;
         }
